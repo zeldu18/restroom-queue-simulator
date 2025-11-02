@@ -1,0 +1,10 @@
+# src/presets/codes/us_stadium.json
+{
+"id": "us_stadium",
+"name": "US Stadium Code (simplified)",
+"rules": [
+{"id":"aisle-width","description":"Aisle width ≥ 1.5 m","selector":"aisle","threshold":1.5,"severity":"error"},
+{"id":"ada-stall","description":"At least one ADA stall","selector":"stall[ada=true]","threshold":1,"severity":"error"},
+{"id":"sink-ratio","description":"Sink-to-stall ratio ≥ 0.6","selector":"sink:stall","threshold":0.6,"severity":"warn"}
+]
+}

@@ -1,0 +1,27 @@
+# schemas/codeRules.schema.json
+{
+"$schema": "https://json-schema.org/draft/2020-12/schema",
+"title": "CodeRules",
+"type":"object",
+"properties":{
+"id": {"type":"string"},
+"name": {"type":"string"},
+"rules": {
+"type":"array",
+"items": {
+"type":"object",
+"properties":{
+"id": {"type":"string"},
+"description": {"type":"string"},
+"selector": {"type":"string"},
+"threshold": {"type":"number"},
+"severity": {"type":"string","enum":["error","warn"]}
+},
+"required":["id","description","selector","threshold","severity"],
+"additionalProperties": false
+}
+}
+},
+"required":["id","name","rules"],
+"additionalProperties": false
+}

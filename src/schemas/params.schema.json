@@ -1,0 +1,61 @@
+# schemas/params.schema.json
+{
+"$schema": "https://json-schema.org/draft/2020-12/schema",
+"title": "SimParams",
+"type": "object",
+"properties": {
+"arrival": {
+"type":"object",
+"properties":{
+"ratePerMin": {"type":"number","minimum":0},
+"surge": {
+"type":"object",
+"properties":{
+"tStart": {"type":"number"},
+"tEnd": {"type":"number"},
+"multiplier": {"type":"number","minimum":1}
+},
+"required":["tStart","tEnd","multiplier"],
+"additionalProperties": false
+}
+},
+"required":["ratePerMin"],
+"additionalProperties": false
+},
+"dwell": {
+"type":"object",
+"properties":{
+"female": {"$ref":"#/definitions/dist"},
+"male": {"$ref":"#/definitions/dist"},
+"neutral": {"$ref":"#/definitions/dist"}
+},
+"required":["female","male"],
+"additionalProperties": false
+},
+"routing": {
+"type":"object",
+"properties":{ "sinkRequired": {"type":"boolean"} },
+"required":["sinkRequired"],
+"additionalProperties": false
+},
+"genderMix": {
+"type":"object",
+"properties":{ "female": {"type":"number"}, "male": {"type":"number"} },
+"required":["female","male"],
+"additionalProperties": false
+}
+},
+"definitions": {
+"dist": {
+"type":"object",
+"properties":{
+"name": {"type":"string","enum":["exponential","normal","lognormal","fixed"]},
+"params": {"type":"object"}
+},
+"required":["name","params"],
+"additionalProperties": false
+}
+},
+"required":["arrival","dwell","routing","genderMix"],
+"additionalProperties": false
+}

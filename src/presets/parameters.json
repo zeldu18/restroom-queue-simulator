@@ -1,0 +1,9 @@
+{
+"arrival": { "ratePerMin": 8.0, "surge": { "tStart": 10, "tEnd": 20, "multiplier": 2 } },
+"dwell": {
+"female": { "name": "lognormal", "params": { "mu": 4.5, "sigma": 0.35 } },
+"male": { "name": "lognormal", "params": { "mu": 4.0, "sigma": 0.30 } }
+},
+"routing": { "sinkRequired": true },
+"genderMix": { "female": 0.55, "male": 0.45 }
+}

@@ -1,0 +1,28 @@
+# schemas/layout.schema.json
+{
+"$schema": "https://json-schema.org/draft/2020-12/schema",
+"title": "Layout",
+"type": "object",
+"properties": {
+"gridSize": {"type":"number","minimum":4},
+"width": {"type":"number","minimum":100},
+"height": {"type":"number","minimum":100},
+"fixtures": {
+"type":"array",
+"items": {
+"type":"object",
+"properties": {
+"id": {"type":"string"},
+"kind": {"type":"string","enum":["stall","urinal","sink","door","wall"]},
+"x": {"type":"number"},
+"y": {"type":"number"},
+"w": {"type":"number"},
+"h": {"type":"number"},
+"props": {"type":"object"}
+},
+"required":["id","kind","x","y","w","h"]
+}
+}
+},
+"required":["gridSize","width","height","fixtures"]
+}
