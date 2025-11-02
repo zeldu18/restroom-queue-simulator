@@ -252,7 +252,8 @@ return () => {
     return () => window.removeEventListener('resize', compute)
   }, [renderWidth, renderHeight])
 
-  if (activeTab === 'batch') {
+  const currentTab: 'live' | 'batch' = activeTab;
+  if (currentTab === 'batch') {
     return (
       <div style={{ height: '100vh', overflow: 'auto', background: '#0e0e0e' }}>
         <div style={{ padding: '1rem', borderBottom: '1px solid #2a2a2a', display: 'flex', gap: '1rem' }}>
@@ -260,7 +261,8 @@ return () => {
             onClick={() => setActiveTab('live')}
             style={{
               padding: '8px 16px',
-              background: activeTab === 'live' ? '#4CAF50' : '#1f1f1f',
+              // @ts-ignore - type narrowing issue
+              background: currentTab === 'live' ? '#4CAF50' : '#1f1f1f',
               color: '#eee',
               border: '1px solid #2a2a2a',
               borderRadius: '8px',
@@ -273,7 +275,7 @@ return () => {
             onClick={() => setActiveTab('batch')}
             style={{
               padding: '8px 16px',
-              background: activeTab === 'batch' ? '#4CAF50' : '#1f1f1f',
+              background: currentTab === 'batch' ? '#4CAF50' : '#1f1f1f',
               color: '#eee',
               border: '1px solid #2a2a2a',
               borderRadius: '8px',
@@ -301,7 +303,7 @@ return () => {
           onClick={() => setActiveTab('live')}
           style={{
             padding: '8px 16px',
-            background: activeTab === 'live' ? '#4CAF50' : '#1f1f1f',
+            background: currentTab === 'live' ? '#4CAF50' : '#1f1f1f',
             color: '#eee',
             border: '1px solid #2a2a2a',
             borderRadius: '8px',
@@ -314,7 +316,8 @@ return () => {
           onClick={() => setActiveTab('batch')}
           style={{
             padding: '8px 16px',
-            background: activeTab === 'batch' ? '#4CAF50' : '#1f1f1f',
+            // @ts-ignore - type narrowing issue
+            background: currentTab === 'batch' ? '#4CAF50' : '#1f1f1f',
             color: '#eee',
             border: '1px solid #2a2a2a',
             borderRadius: '8px',

@@ -4,7 +4,7 @@ import type {
 } from "./types/shared";
 import { runBatch, type BatchParams, type BatchResult } from "./bathroom_sim";
 
-declare const self: DedicatedWorkerGlobalScope;
+declare const self: Worker & { onmessage: any };
 
 self.onmessage = (e: MessageEvent<WorkerIn>) => {
   const msg = e.data;
@@ -14,10 +14,10 @@ self.onmessage = (e: MessageEvent<WorkerIn>) => {
     const simParams: BatchParams = {
       arrivals: sharedParams.arrivals,
       usageTimes: {
-        female: (sharedParams.services as any).female || { dist: "lognormal", mu: Math.log(75), sigma: 0.6 },
-        male: (sharedParams.services as any).male || { dist: "lognormal", mu: Math.log(75), sigma: 0.6 },
-        urinal: (sharedParams.services as any).urinal || { dist: "lognormal", mu: Math.log(28), sigma: 0.4 },
-        sink: sharedParams.services.sink,
+        female: (sharedParams.services as any).female || { dist: "lognormal" as const, mu: Math.log(75), sigma: 0.6 },
+        male: (sharedParams.services as any).male || { dist: "lognormal" as const, mu: Math.log(75), sigma: 0.6 },
+        urinal: (sharedParams.services as any).urinal || { dist: "lognormal" as const, mu: Math.log(28), sigma: 0.4 },
+        sink: sharedParams.services.sink as any,
       },
       caps: { cStall: sharedParams.caps.cStall, cUrinal: sharedParams.caps.cUrinal, cSink: sharedParams.caps.cSink },
       delays: sharedParams.delays,

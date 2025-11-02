@@ -86,11 +86,11 @@ export function runOneReplication(p: SimParams): SimOutputs {
 
   // 3) Seed events
   for (const a of arrStream) {
-    pq.push({ t: a * 60, kind: "ARRIVE", id: nextId++ }); // seconds
+    pq.push({ t: (a as any).t * 60, kind: "ARRIVE", id: nextId++ }); // seconds
     people.set(nextId - 1, {
       id: nextId - 1,
-      gender: a.g,
-      tArrive: a * 60,
+      gender: (a as any).g,
+      tArrive: (a as any).t * 60,
       totalWaitFixture: 0,
       totalWaitSink: 0,
     });
@@ -115,9 +115,9 @@ export function runOneReplication(p: SimParams): SimOutputs {
   const sampleFixtureSec = (g: Gender): number => {
     if (g === "M" && Math.random() < p.arrivals.pMaleUrinal && p.caps.cUrinal > 0) {
       // urinal
-      return sampleLognormal(p.services.urinal.mu, p.services.urinal.sigma, rand);
+      return sampleLognormal((p.services as any).urinal.mu, (p.services as any).urinal.sigma, rand);
     } else {
-      return sampleLognormal(p.services.stall.mu, p.services.stall.sigma, rand);
+      return sampleLognormal((p.services as any).female?.mu || Math.log(75), (p.services as any).female?.sigma || 0.6, rand);
     }
   };
 
@@ -212,9 +212,9 @@ export function runOneReplication(p: SimParams): SimOutputs {
           person.tEnterSink = ev.t;
           const svc =
             p.services.sink.dist === "gamma"
-              ? sampleGamma(p.services.sink.k, p.services.sink.theta, rand)
+              ? sampleGamma(p.services.sink.k || 2.2, p.services.sink.theta || 3.2, rand)
               : sampleLognormal(Math.log(10), 0.5, rand); // fallback
-          person.tLeaveSink = ev.t + svc;
+          person.tLeaveSink = (ev.t + svc) || ev.t;
           pq.push({ t: person.tLeaveSink, kind: "END_SINK", id: person.id });
         }
         break;

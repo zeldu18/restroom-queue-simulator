@@ -46,7 +46,7 @@ export const useSimStore = create<SimState>((set: (next: Partial<SimState>)=>voi
    }
  },
  setPreset: (preset: 'equal' | 'more-stalls-women')=>{
-   const layout = preset === 'equal' ? equalLayout : moreStallsLayout
+   const layout = (preset === 'equal' ? equalLayout : moreStallsLayout) as Layout
    set({ preset, layout })
    // Reinitialize worker with new layout
    const state = get()
