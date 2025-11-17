@@ -3,25 +3,31 @@
 export const CellType = {
   EMPTY: 0,
   WALL: 1,
-  STALL: 2,
-  QUEUE: 3,
-  ENTRANCE: 4,
-  EXIT: 5,
-  URINAL: 6,
-  SINK: 7,
+  W_STALL: 2,      // Women's stall
+  M_STALL: 3,      // Men's stall
+  URINAL: 4,
+  SINK: 5,
+  QUEUE_W: 6,      // Women's queue
+  QUEUE_M: 7,      // Men's queue
+  QUEUE_SHARED: 8, // Shared queue (unisex)
+  ENTRANCE: 9,
+  EXIT: 10,
 } as const;
 
 export type CellType = typeof CellType[keyof typeof CellType];
 
 export const CELL_COLORS: Record<CellType, string> = {
-  [CellType.EMPTY]: "#ffffff",
-  [CellType.WALL]: "#444444",
-  [CellType.STALL]: "#ffd54f",
-  [CellType.QUEUE]: "#bbdefb",
-  [CellType.ENTRANCE]: "#c8e6c9",
-  [CellType.EXIT]: "#ffccbc",
-  [CellType.URINAL]: "#90caf9",
-  [CellType.SINK]: "#b39ddb",
+  [CellType.EMPTY]: "#f5f5f5",           // Light grey floor
+  [CellType.WALL]: "#333333",            // Dark grey walls
+  [CellType.W_STALL]: "#ffc1e3",         // Pink for women's stalls
+  [CellType.M_STALL]: "#b3d9ff",         // Light blue for men's stalls
+  [CellType.URINAL]: "#4a90e2",          // Darker blue for urinals
+  [CellType.SINK]: "#ce93d8",            // Purple for sinks
+  [CellType.QUEUE_W]: "#ffccf2",         // Light pink queue
+  [CellType.QUEUE_M]: "#d6eaff",         // Light blue queue
+  [CellType.QUEUE_SHARED]: "#e1f5fe",    // Cyan for shared queue
+  [CellType.ENTRANCE]: "#c8e6c9",        // Green entrance
+  [CellType.EXIT]: "#ffccbc",            // Orange exit
 };
 
 export type Gender = "F" | "M";
@@ -47,12 +53,17 @@ export interface Cell {
 export interface Stall extends Cell {
   occupiedUntil: number;
   occupantId: number | null;
-  type: 'stall' | 'urinal';
+  type: 'w_stall' | 'm_stall' | 'urinal';
+  genderAllowed: Gender | 'both';
 }
 
 export interface Sink extends Cell {
   occupiedUntil: number;
   occupantId: number | null;
+}
+
+export interface QueueCell extends Cell {
+  gender: Gender | 'shared';
 }
 
 export interface CAConfig {

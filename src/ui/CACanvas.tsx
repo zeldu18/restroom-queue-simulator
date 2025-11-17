@@ -30,7 +30,10 @@ export default function CACanvas({ simulation, cellSize }: CACanvasProps) {
           ctx.fillStyle = CELL_COLORS[cellType] || '#ffffff';
           ctx.fillRect(c * cellSize, r * cellSize, cellSize, cellSize);
           
-          // Grid lines
+          // Draw fixture details
+          drawFixtureDetails(ctx, cellType, c, r, cellSize);
+          
+          // Grid lines (subtle)
           ctx.strokeStyle = '#e0e0e0';
           ctx.lineWidth = 0.5;
           ctx.strokeRect(c * cellSize, r * cellSize, cellSize, cellSize);
@@ -40,6 +43,11 @@ export default function CACanvas({ simulation, cellSize }: CACanvasProps) {
       // Draw people
       for (const p of simulation.people) {
         if (p.state === PersonState.DONE) continue;
+
+        // Don't draw people inside stalls/sinks (they're using the fixture)
+        if (p.state === PersonState.IN_STALL || p.state === PersonState.AT_SINK) {
+          continue;
+        }
 
         const x = p.col * cellSize + cellSize / 2;
         const y = p.row * cellSize + cellSize / 2;
@@ -52,13 +60,18 @@ export default function CACanvas({ simulation, cellSize }: CACanvasProps) {
         }
 
         ctx.beginPath();
-        ctx.arc(x, y, cellSize * 0.3, 0, Math.PI * 2);
+        ctx.arc(x, y, cellSize * 0.35, 0, Math.PI * 2);
         ctx.fill();
+
+        // White border for visibility
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
 
         // Draw state indicator (small dot)
         ctx.fillStyle = getStateColor(p.state);
         ctx.beginPath();
-        ctx.arc(x, y - cellSize * 0.15, cellSize * 0.1, 0, Math.PI * 2);
+        ctx.arc(x, y - cellSize * 0.2, cellSize * 0.12, 0, Math.PI * 2);
         ctx.fill();
       }
     };
@@ -85,7 +98,7 @@ export default function CACanvas({ simulation, cellSize }: CACanvasProps) {
       width={width}
       height={height}
       style={{
-        border: '1px solid #ccc',
+        border: '2px solid #333',
         background: '#ffffff',
         display: 'block',
         imageRendering: 'pixelated',
@@ -94,7 +107,88 @@ export default function CACanvas({ simulation, cellSize }: CACanvasProps) {
   );
 }
 
-function getStateColor(state: PersonState): string {
+function drawFixtureDetails(
+  ctx: CanvasRenderingContext2D,
+  cellType: number,
+  col: number,
+  row: number,
+  cellSize: number
+): void {
+  const x = col * cellSize;
+  const y = row * cellSize;
+
+  switch (cellType) {
+    case CellType.W_STALL:
+    case CellType.M_STALL:
+      // Draw stall door
+      ctx.strokeStyle = '#333';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x + 2, y + 2, cellSize - 4, cellSize - 4);
+      
+      // Draw door handle
+      ctx.fillStyle = '#666';
+      ctx.fillRect(x + cellSize * 0.7, y + cellSize / 2 - 2, 4, 4);
+      break;
+
+    case CellType.URINAL:
+      // Draw urinal shape (vertical oval)
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.ellipse(
+        x + cellSize / 2,
+        y + cellSize / 2,
+        cellSize * 0.25,
+        cellSize * 0.35,
+        0,
+        0,
+        Math.PI * 2
+      );
+      ctx.fill();
+      ctx.strokeStyle = '#333';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      break;
+
+    case CellType.SINK:
+      // Draw sink (circle basin)
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(x + cellSize / 2, y + cellSize / 2, cellSize * 0.3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#333';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      
+      // Draw faucet (small rectangle)
+      ctx.fillStyle = '#888';
+      ctx.fillRect(x + cellSize / 2 - 2, y + cellSize * 0.2, 4, cellSize * 0.15);
+      break;
+
+    case CellType.ENTRANCE:
+      // Draw arrow pointing in
+      ctx.fillStyle = '#2e7d32';
+      ctx.beginPath();
+      ctx.moveTo(x + cellSize / 2, y + cellSize * 0.3);
+      ctx.lineTo(x + cellSize * 0.7, y + cellSize * 0.6);
+      ctx.lineTo(x + cellSize * 0.3, y + cellSize * 0.6);
+      ctx.closePath();
+      ctx.fill();
+      break;
+
+    case CellType.EXIT:
+      // Draw arrow pointing out
+      ctx.fillStyle = '#d84315';
+      ctx.beginPath();
+      ctx.moveTo(x + cellSize / 2, y + cellSize * 0.7);
+      ctx.lineTo(x + cellSize * 0.7, y + cellSize * 0.4);
+      ctx.lineTo(x + cellSize * 0.3, y + cellSize * 0.4);
+      ctx.closePath();
+      ctx.fill();
+      break;
+  }
+}
+
+function getStateColor(state: string): string {
   switch (state) {
     case PersonState.WALKING_TO_QUEUE:
       return '#ffeb3b'; // yellow
@@ -114,4 +208,3 @@ function getStateColor(state: PersonState): string {
       return '#000000';
   }
 }
-

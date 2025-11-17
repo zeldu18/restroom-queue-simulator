@@ -62,12 +62,30 @@ export default function AppCA() {
     forceUpdate(prev => prev + 1);
   };
 
-  const handleLayoutChange = (layout: 'simple' | 'split') => {
+  const handleLayoutChange = (layout: 'simple' | 'layout1' | 'layout2' | 'layout3' | 'layout4' | 'layout5' | 'layout6') => {
     simulation.pause();
-    if (layout === 'simple') {
-      simulation.grid.buildSimpleLayout();
-    } else {
-      simulation.grid.buildSplitLayout();
+    switch (layout) {
+      case 'simple':
+        simulation.grid.buildSimpleLayout();
+        break;
+      case 'layout1':
+        simulation.grid.buildLayout1_Basic5050();
+        break;
+      case 'layout2':
+        simulation.grid.buildLayout2_EqualWaiting();
+        break;
+      case 'layout3':
+        simulation.grid.buildLayout3_MinimalWaiting();
+        break;
+      case 'layout4':
+        simulation.grid.buildLayout4_MixedBasic();
+        break;
+      case 'layout5':
+        simulation.grid.buildLayout5_GenderNeutral();
+        break;
+      case 'layout6':
+        simulation.grid.buildLayout6_MixedMinimal();
+        break;
     }
     simulation.reset();
     forceUpdate(prev => prev + 1);
@@ -180,14 +198,41 @@ export default function AppCA() {
             <CACanvas simulation={simulation} cellSize={config.cellSize} />
             
             {/* Legend */}
-            <div style={{ marginTop: '1rem', display: 'flex', flexWrap: 'wrap', gap: '1rem', fontSize: '0.9rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <div style={{ width: 16, height: 16, borderRadius: '50%', background: '#e91e63' }} />
-                <span>Women</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <div style={{ width: 16, height: 16, borderRadius: '50%', background: '#3f51b5' }} />
-                <span>Men</span>
+            <div style={{ marginTop: '1rem', fontSize: '0.85rem' }}>
+              <strong>Legend:</strong>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginTop: '0.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <div style={{ width: 16, height: 16, borderRadius: '50%', background: '#e91e63' }} />
+                  <span>Women</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <div style={{ width: 16, height: 16, borderRadius: '50%', background: '#3f51b5' }} />
+                  <span>Men</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <div style={{ width: 16, height: 16, background: '#ffc1e3' }} />
+                  <span>W Stalls</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <div style={{ width: 16, height: 16, background: '#b3d9ff' }} />
+                  <span>M Stalls</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <div style={{ width: 16, height: 16, background: '#4a90e2' }} />
+                  <span>Urinals</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <div style={{ width: 16, height: 16, background: '#ce93d8' }} />
+                  <span>Sinks</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <div style={{ width: 16, height: 16, background: '#ffccf2' }} />
+                  <span>W Queue</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <div style={{ width: 16, height: 16, background: '#d6eaff' }} />
+                  <span>M Queue</span>
+                </div>
               </div>
             </div>
           </div>
@@ -256,37 +301,30 @@ export default function AppCA() {
 
               <div style={{ marginBottom: '1rem' }}>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>
-                  Layout:
+                  Layout (from research paper):
                 </label>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button
-                    onClick={() => handleLayoutChange('simple')}
-                    style={{
-                      padding: '6px 12px',
-                      background: '#1976d2',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      fontSize: '0.9rem'
-                    }}
-                  >
-                    Simple (Unisex)
-                  </button>
-                  <button
-                    onClick={() => handleLayoutChange('split')}
-                    style={{
-                      padding: '6px 12px',
-                      background: '#1976d2',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      fontSize: '0.9rem'
-                    }}
-                  >
-                    Split (W/M)
-                  </button>
+                <select
+                  onChange={(e) => handleLayoutChange(e.target.value as any)}
+                  style={{
+                    width: '100%',
+                    padding: '8px',
+                    border: '1px solid #ccc',
+                    borderRadius: '6px',
+                    fontSize: '0.95rem',
+                    background: 'white',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <option value="simple">Simple (Unisex - 4 stalls)</option>
+                  <option value="layout1">Layout 1: Basic (50-50) - 3W/3M stalls</option>
+                  <option value="layout2">Layout 2: ± Equal Waiting - 4W stalls / 2M stalls + 2 urinals</option>
+                  <option value="layout3">Layout 3: Minimal Waiting - 5W stalls / 2M stalls + 3 urinals</option>
+                  <option value="layout4">Layout 4: Mixed Basic - 6 shared stalls</option>
+                  <option value="layout5">Layout 5: Gender-Neutral - 7 shared stalls</option>
+                  <option value="layout6">Layout 6: Mixed Minimal - 7 shared stalls + 3 urinals</option>
+                </select>
+                <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.5rem' }}>
+                  Compare configurations to analyze gender equity in wait times
                 </div>
               </div>
 

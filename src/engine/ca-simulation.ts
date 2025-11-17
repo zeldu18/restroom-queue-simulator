@@ -2,7 +2,7 @@
 
 import { Person, manhattan, shuffleArray } from './ca-person';
 import { CAGrid } from './ca-grid';
-import { type CAConfig, type SimStats, PersonState, CellType, type Gender, type Cell, type Stall, type Sink } from './ca-types';
+import { type CAConfig, type SimStats, PersonState, CellType, type Gender, type Cell, type Stall, type Sink, type QueueCell } from './ca-types';
 
 export class CASimulation {
   config: CAConfig;
@@ -74,8 +74,8 @@ export class CASimulation {
       }
     }
 
-    // 4. Clean up done people (optional - keep for stats)
-    // this.people = this.people.filter(p => p.state !== PersonState.DONE);
+    // 4. Maintain queue order
+    this.maintainAllQueues();
   }
 
   private processArrivals(): void {
@@ -89,18 +89,28 @@ export class CASimulation {
   }
 
   private spawnPerson(): void {
-    if (!this.grid.entranceCell) return;
-
     const rand = Math.random();
     const gender: Gender = rand < this.config.genderMix.female ? 'F' : 'M';
+    
+    // Choose entrance based on gender
+    let entranceCell: Cell | null = null;
+    if (this.grid.entranceWomen && gender === 'F') {
+      entranceCell = this.grid.entranceWomen;
+    } else if (this.grid.entranceMen && gender === 'M') {
+      entranceCell = this.grid.entranceMen;
+    } else if (this.grid.entranceCell) {
+      entranceCell = this.grid.entranceCell;
+    }
+
+    if (!entranceCell) return;
     
     const dwellTime = this.randFloat(this.config.dwellTimeMin, this.config.dwellTimeMax);
     const sinkTime = this.randFloat(this.config.sinkTimeMin, this.config.sinkTimeMax);
 
     const p = new Person(
       this.nextPersonId++,
-      this.grid.entranceCell.col,
-      this.grid.entranceCell.row,
+      entranceCell.col,
+      entranceCell.row,
       gender,
       dwellTime,
       sinkTime,
@@ -138,9 +148,12 @@ export class CASimulation {
 
   private updateWalkingToQueue(p: Person): void {
     if (p.targetQueueIndex === null) {
-      p.targetQueueIndex = this.getNextQueuePositionIndex();
+      p.targetQueueIndex = this.getNextQueuePositionIndex(p.gender);
     }
-    const targetCell = this.grid.queueCells[p.targetQueueIndex];
+
+    const queueCells = this.getQueueCellsForGender(p.gender);
+    const targetCell = queueCells[p.targetQueueIndex];
+    
     if (!targetCell) {
       p.state = PersonState.EXITING;
       return;
@@ -154,33 +167,50 @@ export class CASimulation {
   }
 
   private updateInQueue(p: Person): void {
-    this.maintainQueueOrder();
+    // Queue snapping: person stays at their queue cell, no wandering
+    const queueCells = this.getQueueCellsForGender(p.gender);
+    const myCell = queueCells[p.targetQueueIndex ?? 0];
+    
+    if (myCell && !p.isAt(myCell)) {
+      // Snap back to queue position
+      p.moveTo(myCell.col, myCell.row);
+    }
 
     // If at front of queue, try to get a free stall
-    if (p.targetQueueIndex === 0 && this.grid.queueCells[0] && p.isAt(this.grid.queueCells[0])) {
+    if (p.targetQueueIndex === 0 && myCell && p.isAt(myCell)) {
       const freeStall = this.findFreeStall(p.gender);
       if (freeStall) {
         p.targetStall = freeStall;
         freeStall.occupiedUntil = Infinity;
         freeStall.occupantId = p.id;
         p.state = PersonState.WALKING_TO_STALL;
+        
+        // Remove from queue
+        this.popFromQueue(p.gender);
       }
     }
   }
 
   private findFreeStall(gender: Gender): Stall | null {
-    // For men, prefer urinals if available
+    // Find free stalls that this gender can use
+    const availableStalls = this.grid.stalls.filter(s => 
+      s.occupiedUntil <= this.stats.simTimeSeconds && 
+      s.occupantId === null &&
+      (s.genderAllowed === gender || s.genderAllowed === 'both')
+    );
+
+    if (availableStalls.length === 0) return null;
+
+    // For men, prefer urinals with given probability
     if (gender === 'M' && Math.random() < this.config.pMaleUrinal) {
-      const freeUrinal = this.grid.stalls.find(
-        s => s.type === 'urinal' && s.occupiedUntil <= this.stats.simTimeSeconds && s.occupantId === null
-      );
-      if (freeUrinal) return freeUrinal;
+      const urinals = availableStalls.filter(s => s.type === 'urinal');
+      if (urinals.length > 0) {
+        return urinals[0];
+      }
     }
 
-    // Otherwise get any free stall
-    return this.grid.stalls.find(
-      s => s.occupiedUntil <= this.stats.simTimeSeconds && s.occupantId === null
-    ) || null;
+    // Otherwise return any available stall
+    return availableStalls[0];
   }
 
   private updateWalkingToStall(p: Person): void {
@@ -201,6 +231,11 @@ export class CASimulation {
     if (p.timeEnteredStall === null) {
       p.state = PersonState.WALKING_TO_SINK;
       return;
+    }
+
+    // Person stays in stall (snapped to fixture position)
+    if (p.targetStall && !p.isAt(p.targetStall)) {
+      p.moveTo(p.targetStall.col, p.targetStall.row);
     }
 
     if (this.stats.simTimeSeconds - p.timeEnteredStall >= p.dwellTime) {
@@ -242,6 +277,11 @@ export class CASimulation {
     if (p.timeEnteredSink === null) {
       p.state = PersonState.EXITING;
       return;
+    }
+
+    // Stay at sink
+    if (p.targetSink && !p.isAt(p.targetSink)) {
+      p.moveTo(p.targetSink.col, p.targetSink.row);
     }
 
     if (this.stats.simTimeSeconds - p.timeEnteredSink >= p.sinkTime) {
@@ -300,8 +340,8 @@ export class CASimulation {
       // Avoid walls
       if (cellType === CellType.WALL) continue;
 
-      // Can't step into occupied stalls/sinks unless it's your target
-      if (cellType === CellType.STALL || cellType === CellType.URINAL) {
+      // Can't step into occupied stalls/urinals/sinks unless it's your target
+      if (cellType === CellType.W_STALL || cellType === CellType.M_STALL || cellType === CellType.URINAL) {
         if (!(target.col === nc && target.row === nr)) continue;
       }
       if (cellType === CellType.SINK) {
@@ -325,10 +365,20 @@ export class CASimulation {
     }
   }
 
-  private getNextQueuePositionIndex(): number {
+  private getQueueCellsForGender(gender: Gender): QueueCell[] {
+    if (this.grid.queueCellsShared.length > 0) {
+      return this.grid.queueCellsShared;
+    }
+    return gender === 'F' ? this.grid.queueCellsWomen : this.grid.queueCellsMen;
+  }
+
+  private getNextQueuePositionIndex(gender: Gender): number {
+    const queueCells = this.getQueueCellsForGender(gender);
     const occupiedIndices = new Set<number>();
+    
     this.people.forEach(p => {
       if (
+        p.gender === gender &&
         p.state !== PersonState.DONE &&
         p.targetQueueIndex !== null &&
         p.targetQueueIndex >= 0
@@ -337,19 +387,45 @@ export class CASimulation {
       }
     });
 
-    for (let i = this.grid.queueCells.length - 1; i >= 0; i--) {
+    // Find first free slot from the end (back of queue)
+    for (let i = queueCells.length - 1; i >= 0; i--) {
       if (!occupiedIndices.has(i)) {
         return i;
       }
     }
 
-    return this.grid.queueCells.length - 1;
+    return queueCells.length - 1;
   }
 
-  private maintainQueueOrder(): void {
+  private popFromQueue(gender: Gender): void {
+    // Remove person at index 0, shift everyone else forward
+    this.people.forEach(p => {
+      if (
+        p.gender === gender &&
+        p.state === PersonState.IN_QUEUE &&
+        p.targetQueueIndex !== null &&
+        p.targetQueueIndex > 0
+      ) {
+        p.targetQueueIndex -= 1;
+      }
+    });
+  }
+
+  private maintainAllQueues(): void {
+    // Maintain women's queue
+    this.maintainQueueOrder('F');
+    // Maintain men's queue
+    this.maintainQueueOrder('M');
+  }
+
+  private maintainQueueOrder(gender: Gender): void {
+    const queueCells = this.getQueueCellsForGender(gender);
+    if (queueCells.length === 0) return;
+
     const occupiedByIndex = new Map<number, Person>();
     this.people.forEach(p => {
       if (
+        p.gender === gender &&
         p.state === PersonState.IN_QUEUE &&
         p.targetQueueIndex !== null &&
         p.targetQueueIndex >= 0
@@ -358,10 +434,12 @@ export class CASimulation {
       }
     });
 
-    for (let i = 0; i < this.grid.queueCells.length; i++) {
+    // Fill gaps in queue
+    for (let i = 0; i < queueCells.length; i++) {
       const occupant = occupiedByIndex.get(i);
       if (!occupant) {
-        for (let j = i + 1; j < this.grid.queueCells.length; j++) {
+        // Cell is empty; move someone from behind forward
+        for (let j = i + 1; j < queueCells.length; j++) {
           const p = occupiedByIndex.get(j);
           if (p) {
             p.targetQueueIndex = i;
@@ -394,4 +472,3 @@ export class CASimulation {
       : 0;
   }
 }
-
