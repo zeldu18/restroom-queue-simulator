@@ -81,11 +81,28 @@ export class CASimulation {
   private processArrivals(): void {
     const lambdaPerSec = this.config.arrivalRatePerMin / 60;
     const dt = this.config.secondsPerTick;
-    const probNew = lambdaPerSec * dt;
+    const mean = lambdaPerSec * dt;
 
-    if (Math.random() < probNew) {
+    // Proper Poisson sampling (not Bernoulli approximation)
+    const numArrivals = this.samplePoisson(mean);
+    
+    for (let i = 0; i < numArrivals; i++) {
       this.spawnPerson();
     }
+  }
+
+  private samplePoisson(mean: number): number {
+    // Knuth's algorithm for Poisson sampling
+    const L = Math.exp(-mean);
+    let k = 0;
+    let p = 1;
+    
+    do {
+      k++;
+      p *= Math.random();
+    } while (p > L);
+    
+    return k - 1;
   }
 
   private spawnPerson(): void {
@@ -171,27 +188,31 @@ export class CASimulation {
     const queueCells = this.getQueueCellsForGender(p.gender);
     const myCell = queueCells[p.targetQueueIndex ?? 0];
     
-    if (myCell && !p.isAt(myCell)) {
-      // Snap back to queue position
+    // STRICT RULE: Stay snapped to your queue cell. No movement until released.
+    if (myCell) {
       p.moveTo(myCell.col, myCell.row);
     }
 
-    // If at front of queue, try to get a free stall
+    // ONLY the person at index 0 can be released to a fixture
+    // Everyone else waits in line
     if (p.targetQueueIndex === 0 && myCell && p.isAt(myCell)) {
-      const freeStall = this.findFreeStall(p.gender);
+      // Check for a TRULY free stall (not reserved, not occupied)
+      const freeStall = this.findAvailableStall(p.gender);
       if (freeStall) {
+        // Release this person from queue
         p.targetStall = freeStall;
-        // DON'T mark as occupied yet - wait until they actually reach it
         p.state = PersonState.WALKING_TO_STALL;
         
-        // Remove from queue
+        // Remove from queue, everyone else shifts forward
         this.popFromQueue(p.gender);
       }
     }
+    // If NOT at front (targetQueueIndex > 0), do nothing - stay in line
   }
 
-  private findFreeStall(gender: Gender): Stall | null {
-    // Find free stalls that this gender can use
+  private findAvailableStall(gender: Gender): Stall | null {
+    // Find TRULY free stalls that this gender can use
+    // Must be: not occupied AND not reserved (occupantId === null)
     const availableStalls = this.grid.stalls.filter(s => 
       s.occupiedUntil <= this.stats.simTimeSeconds && 
       s.occupantId === null &&

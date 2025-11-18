@@ -227,6 +227,31 @@ function drawOccupancyIndicator(
   ctx.textBaseline = 'top';
   const text = isOccupied ? 'OCC' : 'VAC';
   ctx.fillText(text, x + cellSize / 2, y + 2);
+
+  // Draw progress bar if occupied
+  if (isOccupied && fixture.occupantId !== null) {
+    // Find the person using this fixture
+    const person = simulation.people.find((p: any) => p.id === fixture.occupantId);
+    if (person && person.timeEnteredStall !== null) {
+      const elapsed = simulation.stats.simTimeSeconds - (person.timeEnteredStall || person.timeEnteredSink || 0);
+      const total = person.dwellTime || person.sinkTime || 1;
+      const progress = Math.min(elapsed / total, 1);
+
+      // Draw progress bar at bottom of cell
+      const barWidth = cellSize - 4;
+      const barHeight = 3;
+      const barX = x + 2;
+      const barY = y + cellSize - barHeight - 2;
+
+      // Background
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+      ctx.fillRect(barX, barY, barWidth, barHeight);
+
+      // Progress
+      ctx.fillStyle = progress < 0.8 ? '#fbbf24' : '#10b981'; // Yellow -> Green when almost done
+      ctx.fillRect(barX, barY, barWidth * progress, barHeight);
+    }
+  }
 }
 
 function getStateColor(state: string): string {

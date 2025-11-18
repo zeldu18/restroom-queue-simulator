@@ -385,8 +385,8 @@ export default function AppCA() {
               </div>
 
               <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>
-                  Layout (from research paper):
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#1f2937' }}>
+                  📐 Research Layouts:
                 </label>
                 <select
                   onChange={(e) => handleLayoutChange(e.target.value as any)}
@@ -397,10 +397,11 @@ export default function AppCA() {
                     borderRadius: '6px',
                     fontSize: '0.95rem',
                     background: 'white',
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    color: '#1f2937'
                   }}
                 >
-                  <option value="simple">Simple (Unisex - 4 stalls)</option>
+                  <option value="simple">🔷 Simple (Unisex - 4 stalls)</option>
                   <option value="layout1">Layout 1: Basic (50-50) - 3W/3M stalls</option>
                   <option value="layout2">Layout 2: ± Equal Waiting - 4W stalls / 2M stalls + 2 urinals</option>
                   <option value="layout3">Layout 3: Minimal Waiting - 5W stalls / 2M stalls + 3 urinals</option>
@@ -408,8 +409,15 @@ export default function AppCA() {
                   <option value="layout5">Layout 5: Gender-Neutral - 7 shared stalls</option>
                   <option value="layout6">Layout 6: Mixed Minimal - 7 shared stalls + 3 urinals</option>
                 </select>
-                <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.5rem' }}>
-                  Compare configurations to analyze gender equity in wait times
+                <div style={{ 
+                  fontSize: '0.8rem', 
+                  color: '#6b7280', 
+                  marginTop: '0.5rem',
+                  padding: '0.5rem',
+                  background: '#f3f4f6',
+                  borderRadius: '6px'
+                }}>
+                  <strong>Compare layouts</strong> to analyze gender equity. Layouts 1-6 from peer-reviewed research. <em>(Custom builder coming soon!)</em>
                 </div>
               </div>
 
@@ -427,7 +435,7 @@ export default function AppCA() {
                   style={{ width: '100%' }}
                 />
                 <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.25rem', fontStyle: 'italic' }}>
-                  Currently: Constant rate. (Time-varying Poisson arrivals available in Batch Analysis tab)
+                  Poisson arrivals (mean λ per minute). Time-varying rates available in Batch Analysis tab.
                 </div>
               </div>
             </div>
