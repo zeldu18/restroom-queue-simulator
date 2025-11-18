@@ -79,6 +79,7 @@ export interface CAConfig {
   sinkTimeMax: number;
   genderMix: { female: number; male: number };
   pMaleUrinal: number;
+  warmupSeconds: number; // Don't count stats until after this time
 }
 
 export interface SimStats {

@@ -181,8 +181,7 @@ export class CASimulation {
       const freeStall = this.findFreeStall(p.gender);
       if (freeStall) {
         p.targetStall = freeStall;
-        freeStall.occupiedUntil = Infinity;
-        freeStall.occupantId = p.id;
+        // DON'T mark as occupied yet - wait until they actually reach it
         p.state = PersonState.WALKING_TO_STALL;
         
         // Remove from queue
@@ -222,6 +221,10 @@ export class CASimulation {
     this.stepToward(p, p.targetStall);
 
     if (p.isAt(p.targetStall)) {
+      // NOW mark as occupied (person has actually entered)
+      p.targetStall.occupiedUntil = Infinity;
+      p.targetStall.occupantId = p.id;
+      
       p.state = PersonState.IN_STALL;
       p.timeEnteredStall = this.stats.simTimeSeconds;
     }
@@ -256,8 +259,7 @@ export class CASimulation {
       );
       if (freeSink) {
         p.targetSink = freeSink;
-        freeSink.occupiedUntil = Infinity;
-        freeSink.occupantId = p.id;
+        // DON'T mark as occupied yet - wait until they actually reach it
       } else {
         // No free sink, skip to exit
         p.state = PersonState.EXITING;
@@ -268,6 +270,10 @@ export class CASimulation {
     this.stepToward(p, p.targetSink);
 
     if (p.isAt(p.targetSink)) {
+      // NOW mark as occupied (person has actually entered)
+      p.targetSink.occupiedUntil = Infinity;
+      p.targetSink.occupantId = p.id;
+      
       p.state = PersonState.AT_SINK;
       p.timeEnteredSink = this.stats.simTimeSeconds;
     }
@@ -302,16 +308,20 @@ export class CASimulation {
 
     if (p.isAt(this.grid.exitCell)) {
       p.state = PersonState.DONE;
-      this.stats.servedCount += 1;
+      
+      // Only count people who completed AFTER the warmup period
       const totalTime = this.stats.simTimeSeconds - p.timeEnteredSystem;
-      this.stats.totalTimeInSystem += totalTime;
+      if (this.stats.simTimeSeconds > this.config.warmupSeconds) {
+        this.stats.servedCount += 1;
+        this.stats.totalTimeInSystem += totalTime;
 
-      if (p.gender === 'F') {
-        this.stats.femaleCount += 1;
-        this.stats.femaleTimeInSystem += totalTime;
-      } else {
-        this.stats.maleCount += 1;
-        this.stats.maleTimeInSystem += totalTime;
+        if (p.gender === 'F') {
+          this.stats.femaleCount += 1;
+          this.stats.femaleTimeInSystem += totalTime;
+        } else {
+          this.stats.maleCount += 1;
+          this.stats.maleTimeInSystem += totalTime;
+        }
       }
     }
   }
