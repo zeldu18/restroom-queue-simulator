@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { CASimulation } from './engine/ca-simulation';
-import { type CAConfig } from './engine/ca-types';
+import { type CAConfig, PersonState } from './engine/ca-types';
 import CACanvas from './ui/CACanvas';
 import BatchAnalysis from './ui/BatchAnalysis';
 
@@ -132,55 +132,134 @@ export default function AppCA() {
     );
   }
 
+  // Count people by state
+  const inQueue = simulation.people.filter(p => p.state === PersonState.IN_QUEUE).length;
+  const usingFixtures = simulation.people.filter(p => p.state === PersonState.IN_STALL || p.state === PersonState.AT_SINK).length;
+  const walking = simulation.people.filter(p => 
+    p.state === PersonState.WALKING_TO_QUEUE || 
+    p.state === PersonState.WALKING_TO_STALL || 
+    p.state === PersonState.WALKING_TO_SINK || 
+    p.state === PersonState.EXITING
+  ).length;
+
   return (
     <div style={{
-      height: '100vh',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      padding: '2rem',
-      overflow: 'auto'
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #1e3a8a 0%, #312e81 50%, #4c1d95 100%)',
+      padding: '1rem',
+      overflow: 'auto',
+      position: 'relative'
     }}>
+      {/* Decorative background pattern */}
+      <div style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundImage: `
+          repeating-linear-gradient(0deg, rgba(255,255,255,0.03) 0px, transparent 1px, transparent 40px),
+          repeating-linear-gradient(90deg, rgba(255,255,255,0.03) 0px, transparent 1px, transparent 40px)
+        `,
+        pointerEvents: 'none'
+      }} />
+
       {/* Tab Navigation */}
       <div style={{ position: 'absolute', top: '1rem', left: '1rem', display: 'flex', gap: '1rem', zIndex: 1000 }}>
         <button
           onClick={() => setActiveTab('live')}
           style={{
-            padding: '8px 16px',
-            background: '#4CAF50',
-            color: '#eee',
-            border: '1px solid #2a2a2a',
-            borderRadius: '8px',
+            padding: '10px 20px',
+            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+            color: 'white',
+            border: 'none',
+            borderRadius: '12px',
             cursor: 'pointer',
-            fontWeight: 600
+            fontWeight: 700,
+            fontSize: '0.95rem',
+            boxShadow: '0 4px 15px rgba(16,185,129,0.4)',
+            transition: 'transform 0.2s'
           }}
+          onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+          onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
         >
-          Live Simulation (CA)
+          🎮 Live Simulation
         </button>
         <button
           onClick={() => setActiveTab('batch')}
           style={{
-            padding: '8px 16px',
-            background: '#1f1f1f',
-            color: '#eee',
-            border: '1px solid #2a2a2a',
-            borderRadius: '8px',
-            cursor: 'pointer'
+            padding: '10px 20px',
+            background: 'rgba(255,255,255,0.1)',
+            color: 'white',
+            border: '2px solid rgba(255,255,255,0.2)',
+            borderRadius: '12px',
+            cursor: 'pointer',
+            fontWeight: 600,
+            fontSize: '0.95rem',
+            backdropFilter: 'blur(10px)'
           }}
         >
-          Batch Analysis
+          📊 Batch Analysis
         </button>
       </div>
 
-      <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
-        <h1 style={{
-          color: 'white',
-          marginBottom: '1.5rem',
+      <div style={{ maxWidth: '1400px', margin: '0 auto', position: 'relative', zIndex: 1 }}>
+        {/* Title Banner */}
+        <div style={{
+          background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+          borderRadius: '20px',
+          padding: '2rem',
+          marginBottom: '2rem',
+          boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
+          border: '3px solid rgba(255,255,255,0.2)',
           textAlign: 'center',
-          fontSize: '2rem',
-          fontWeight: 800,
-          textShadow: '0 2px 10px rgba(0,0,0,0.3)'
+          position: 'relative',
+          overflow: 'hidden'
         }}>
-          Restroom Queue Cellular Automaton
-        </h1>
+          {/* Decorative elements */}
+          <div style={{
+            position: 'absolute',
+            top: '-50px',
+            right: '-50px',
+            width: '200px',
+            height: '200px',
+            background: 'rgba(255,255,255,0.1)',
+            borderRadius: '50%'
+          }} />
+          <div style={{
+            position: 'absolute',
+            bottom: '-50px',
+            left: '-50px',
+            width: '150px',
+            height: '150px',
+            background: 'rgba(255,255,255,0.1)',
+            borderRadius: '50%'
+          }} />
+          
+          <h1 style={{
+            color: 'white',
+            margin: 0,
+            fontSize: '2.5rem',
+            fontWeight: 900,
+            textShadow: '0 4px 20px rgba(0,0,0,0.4)',
+            letterSpacing: '1px',
+            position: 'relative',
+            zIndex: 1
+          }}>
+            🚻 RESTROOM QUEUE SIMULATOR
+          </h1>
+          <p style={{
+            color: 'rgba(255,255,255,0.95)',
+            margin: '0.5rem 0 0 0',
+            fontSize: '1.1rem',
+            fontWeight: 600,
+            textShadow: '0 2px 10px rgba(0,0,0,0.3)',
+            position: 'relative',
+            zIndex: 1
+          }}>
+            Cellular Automaton • Gender Equity Analysis • CS166 Queueing Theory
+          </p>
+        </div>
 
         <div style={{
           display: 'grid',
@@ -190,10 +269,11 @@ export default function AppCA() {
         }}>
           {/* Canvas */}
           <div style={{
-            background: 'white',
-            borderRadius: '12px',
-            padding: '1rem',
-            boxShadow: '0 10px 40px rgba(0,0,0,0.2)'
+            background: '#ffffff',
+            borderRadius: '16px',
+            padding: '1.5rem',
+            boxShadow: '0 15px 50px rgba(0,0,0,0.4)',
+            border: '3px solid rgba(255,255,255,0.3)'
           }}>
             <CACanvas simulation={simulation} cellSize={config.cellSize} />
             
@@ -245,10 +325,11 @@ export default function AppCA() {
           }}>
             {/* Controls */}
             <div style={{
-              background: 'rgba(255,255,255,0.95)',
-              borderRadius: '12px',
+              background: '#ffffff',
+              borderRadius: '16px',
               padding: '1.5rem',
-              boxShadow: '0 10px 40px rgba(0,0,0,0.2)'
+              boxShadow: '0 15px 50px rgba(0,0,0,0.4)',
+              border: '3px solid rgba(255,255,255,0.3)'
             }}>
               <h3 style={{ marginTop: 0, marginBottom: '1rem' }}>Controls</h3>
               
@@ -346,27 +427,52 @@ export default function AppCA() {
 
             {/* Stats */}
             <div style={{
-              background: 'rgba(255,255,255,0.95)',
-              borderRadius: '12px',
+              background: '#ffffff',
+              borderRadius: '16px',
               padding: '1.5rem',
-              boxShadow: '0 10px 40px rgba(0,0,0,0.2)'
+              boxShadow: '0 15px 50px rgba(0,0,0,0.4)',
+              border: '3px solid rgba(255,255,255,0.3)'
             }}>
-              <h3 style={{ marginTop: 0, marginBottom: '1rem' }}>Statistics</h3>
+              <h3 style={{ marginTop: 0, marginBottom: '1rem', color: '#1e3a8a', fontSize: '1.3rem', fontWeight: 700 }}>
+                📊 Live Statistics
+              </h3>
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.95rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ fontWeight: 600 }}>Simulation time:</span>
-                  <span>{simulation.stats.simTimeSeconds.toFixed(0)}s</span>
+                  <span style={{ fontWeight: 600 }}>⏱️ Simulation time:</span>
+                  <span style={{ fontWeight: 700, color: '#1e3a8a' }}>{simulation.stats.simTimeSeconds.toFixed(0)}s</span>
                 </div>
                 
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ fontWeight: 600 }}>People served:</span>
-                  <span>{simulation.stats.servedCount}</span>
+                  <span style={{ fontWeight: 600 }}>✅ People served:</span>
+                  <span style={{ fontWeight: 700, color: '#059669' }}>{simulation.stats.servedCount}</span>
                 </div>
                 
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ fontWeight: 600 }}>Currently inside:</span>
-                  <span>{simulation.people.filter(p => p.state !== 'done').length}</span>
+                <hr style={{ margin: '0.5rem 0', border: 'none', borderTop: '2px solid #e5e7eb' }} />
+                
+                <div style={{ 
+                  background: 'linear-gradient(135deg, #dbeafe 0%, #e0e7ff 100%)', 
+                  padding: '0.75rem', 
+                  borderRadius: '8px',
+                  border: '2px solid #93c5fd'
+                }}>
+                  <div style={{ fontWeight: 700, marginBottom: '0.5rem', color: '#1e40af' }}>
+                    👥 Currently Inside: {inQueue + usingFixtures + walking}
+                  </div>
+                  <div style={{ fontSize: '0.85rem', paddingLeft: '1rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span>🟠 In Queue:</span>
+                      <span style={{ fontWeight: 600 }}>{inQueue}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span>🔴 Using Fixtures:</span>
+                      <span style={{ fontWeight: 600 }}>{usingFixtures}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span>🟡 Walking:</span>
+                      <span style={{ fontWeight: 600 }}>{walking}</span>
+                    </div>
+                  </div>
                 </div>
 
                 <hr style={{ margin: '0.5rem 0', border: 'none', borderTop: '1px solid #ddd' }} />
@@ -389,18 +495,27 @@ export default function AppCA() {
                 {simulation.stats.femaleCount > 0 && simulation.stats.maleCount > 0 && (
                   <div style={{
                     marginTop: '0.5rem',
-                    padding: '0.75rem',
-                    background: '#fff3e0',
-                    borderRadius: '6px',
-                    border: '1px solid #ffb74d'
+                    padding: '1rem',
+                    background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
+                    borderRadius: '12px',
+                    border: '3px solid #fbbf24',
+                    boxShadow: '0 4px 15px rgba(251,191,36,0.3)'
                   }}>
-                    <div style={{ fontWeight: 600, marginBottom: '0.25rem', color: '#e65100' }}>
-                      Gender Gap:
+                    <div style={{ fontWeight: 700, marginBottom: '0.5rem', color: '#92400e', fontSize: '1.05rem' }}>
+                      ⚖️ Gender Equity Gap
                     </div>
-                    <div style={{ fontSize: '0.9rem', color: '#e65100' }}>
-                      {(simulation.getFemaleAverageTime() - simulation.getMaleAverageTime()).toFixed(1)}s
-                      {' '}
-                      ({((simulation.getFemaleAverageTime() / simulation.getMaleAverageTime() - 1) * 100).toFixed(1)}%)
+                    <div style={{ fontSize: '0.9rem', color: '#78350f', lineHeight: '1.6' }}>
+                      <div style={{ marginBottom: '0.25rem' }}>
+                        <strong>Time difference:</strong> {Math.abs(simulation.getFemaleAverageTime() - simulation.getMaleAverageTime()).toFixed(1)}s
+                      </div>
+                      <div style={{ marginBottom: '0.25rem' }}>
+                        <strong>Women wait:</strong> {((simulation.getFemaleAverageTime() / simulation.getMaleAverageTime() - 1) * 100).toFixed(1)}% longer
+                      </div>
+                      <div style={{ fontSize: '0.8rem', marginTop: '0.5rem', fontStyle: 'italic', opacity: 0.8 }}>
+                        {simulation.getFemaleAverageTime() > simulation.getMaleAverageTime() 
+                          ? '⚠️ Women experience longer wait times'
+                          : '✅ Wait times are equal or favor women'}
+                      </div>
                     </div>
                   </div>
                 )}

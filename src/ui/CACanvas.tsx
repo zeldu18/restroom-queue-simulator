@@ -33,6 +33,9 @@ export default function CACanvas({ simulation, cellSize }: CACanvasProps) {
           // Draw fixture details
           drawFixtureDetails(ctx, cellType, c, r, cellSize);
           
+          // Draw occupancy indicators
+          drawOccupancyIndicator(ctx, simulation, c, r, cellSize);
+          
           // Grid lines (subtle)
           ctx.strokeStyle = '#e0e0e0';
           ctx.lineWidth = 0.5;
@@ -186,6 +189,44 @@ function drawFixtureDetails(
       ctx.fill();
       break;
   }
+}
+
+function drawOccupancyIndicator(
+  ctx: CanvasRenderingContext2D,
+  simulation: any,
+  col: number,
+  row: number,
+  cellSize: number
+): void {
+  // Check if this cell is a stall/urinal/sink and if it's occupied
+  const stall = simulation.grid.stalls.find((s: any) => s.col === col && s.row === row);
+  const sink = simulation.grid.sinks.find((s: any) => s.col === col && s.row === row);
+  
+  const fixture = stall || sink;
+  if (!fixture) return;
+
+  const isOccupied = fixture.occupantId !== null;
+  const x = col * cellSize;
+  const y = row * cellSize;
+
+  // Draw indicator light in top-right corner
+  ctx.fillStyle = isOccupied ? '#ff3333' : '#33ff33'; // Red or Green
+  ctx.beginPath();
+  ctx.arc(x + cellSize - 6, y + 6, 4, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Add white border for visibility
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Add "OCCUPIED" or "VACANT" text (small)
+  ctx.font = `${Math.floor(cellSize * 0.25)}px Arial`;
+  ctx.fillStyle = isOccupied ? '#cc0000' : '#00aa00';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  const text = isOccupied ? 'OCC' : 'VAC';
+  ctx.fillText(text, x + cellSize / 2, y + 2);
 }
 
 function getStateColor(state: string): string {
