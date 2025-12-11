@@ -27,7 +27,7 @@ export class Person {
   
   // Times (adjusted by character modifiers)
   baseDwellTime: number;
-  baseSinkTime: number;
+  baseSinkTime: number;f
   dwellTime: number;
   sinkTime: number;
   changingTableTime: number;
@@ -45,6 +45,7 @@ export class Person {
   needsChangingTable: boolean;
   hasUsedChangingTable: boolean;
   needsAccessibleStall: boolean;
+  willUseSink: boolean;  // Whether this person will use the sink (men: 50%, women: 100%)
 
   constructor(
     id: number,
@@ -55,7 +56,8 @@ export class Person {
     baseDwellTime: number,
     baseSinkTime: number,
     timeEnteredSystem: number,
-    changingTableTime: number = 0
+    changingTableTime: number = 0,
+    willUseSink: boolean = true
   ) {
     this.id = id;
     this.col = col;
@@ -89,6 +91,7 @@ export class Person {
     this.needsChangingTable = this.modifiers.needsChangingTable;
     this.hasUsedChangingTable = false;
     this.needsAccessibleStall = this.modifiers.needsAccessibleStall;
+    this.willUseSink = willUseSink;
   }
 
   isAt(cell: Cell): boolean {

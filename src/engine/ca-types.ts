@@ -255,6 +255,9 @@ export interface CAConfig {
   // Male urinal preference
   pMaleUrinal: number;
   
+  // Probability that men use the sink (women always use sink)
+  pMaleUseSink: number;
+  
   // Character type frequencies
   characterFrequencies: CharacterFrequencies;
   
@@ -275,6 +278,7 @@ export const DEFAULT_CA_CONFIG: CAConfig = {
   serviceTimes: DEFAULT_SERVICE_TIMES,
   genderMix: { female: 0.5, male: 0.5 },
   pMaleUrinal: 0.85,
+  pMaleUseSink: 0.5,  // 50% of men use sink
   characterFrequencies: DEFAULT_CHARACTER_FREQUENCIES,
   areaConfig: DEFAULT_AREA_CONFIG,
   warmupSeconds: 120,

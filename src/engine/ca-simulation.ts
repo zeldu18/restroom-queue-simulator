@@ -171,6 +171,9 @@ export class CASimulation {
     // Get gender-specific service times
     const { dwellTime, sinkTime, changingTableTime } = this.generateServiceTimes(gender, characterType);
 
+    // Men only use sink 50% of the time, women always use sink
+    const willUseSink = gender === 'F' ? true : Math.random() < this.config.pMaleUseSink;
+
     const p = new Person(
       this.nextPersonId++,
       entranceCell.col,
@@ -180,7 +183,8 @@ export class CASimulation {
       dwellTime,
       sinkTime,
       this.stats.simTimeSeconds,
-      changingTableTime
+      changingTableTime,
+      willUseSink
     );
 
     this.people.push(p);
@@ -471,16 +475,27 @@ export class CASimulation {
   }
 
   private updateWalkingToSink(p: Person): void {
+    // If this person doesn't want to use sink (50% of men), skip directly to exit
+    if (!p.willUseSink) {
+      p.state = PersonState.EXITING;
+      return;
+    }
+    
     if (!p.targetSink) {
+      // Find a sink that matches person's gender (or is shared)
       const freeSink = this.grid.sinks.find(
-        s => s.occupiedUntil <= this.stats.simTimeSeconds && s.occupantId === null
+        s => s.occupiedUntil <= this.stats.simTimeSeconds && 
+             s.occupantId === null &&
+             (s.genderAllowed === p.gender || s.genderAllowed === 'both')
       );
+      
       if (freeSink) {
         p.targetSink = freeSink;
         freeSink.occupantId = p.id;
       } else {
-        // No free sink, skip to exit
-        p.state = PersonState.EXITING;
+        // No free sink for this gender - WAIT, don't use other gender's sink!
+        // Stay in this state and try again next tick
+        // (Don't skip to exit - they need to wash hands)
         return;
       }
     }
@@ -635,6 +650,7 @@ export class CASimulation {
     const queueCells = this.getQueueCellsForGender(gender);
     const occupiedIndices = new Set<number>();
     
+    // Collect all occupied queue indices for this gender
     this.people.forEach(p => {
       if (
         p.gender === gender &&
@@ -646,13 +662,16 @@ export class CASimulation {
       }
     });
 
-    // Find first free slot from the end (back of queue)
-    for (let i = queueCells.length - 1; i >= 0; i--) {
+    // Find FIRST free slot from the FRONT of the queue
+    // Index 0 = front (next to be served), higher indices = further back
+    // New arrivals go to the BACK (first available from front)
+    for (let i = 0; i < queueCells.length; i++) {
       if (!occupiedIndices.has(i)) {
         return i;
       }
     }
 
+    // Queue is full, assign to the back
     return queueCells.length - 1;
   }
 
