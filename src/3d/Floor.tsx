@@ -1,6 +1,6 @@
 // 3D Bathroom Floor with Tiles
 
-import { useRef } from 'react';
+import React, { useRef } from 'react';
 import { Mesh, RepeatWrapping, TextureLoader } from 'three';
 import { useLoader } from '@react-three/fiber';
 
@@ -54,7 +54,7 @@ export function Floor({ width, depth, position = [0, 0, 0] }: FloorProps) {
 
 // Checkered floor alternative
 export function CheckeredFloor({ width, depth, position = [0, 0, 0] }: FloorProps) {
-  const tiles: JSX.Element[] = [];
+  const tiles: React.ReactElement[] = [];
   const tileSize = 1;
   
   for (let x = 0; x < width; x++) {

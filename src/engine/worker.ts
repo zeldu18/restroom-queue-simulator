@@ -1,5 +1,27 @@
 import type { Agent, Fixture, Gender, SimParams, Layout, Grid, GridCell, CellType } from './types'
-import { PathFinder } from './pathfinding'
+
+// Simple PathFinder stub for legacy worker
+class PathFinder {
+  private grid: Grid | null = null;
+  
+  initFromGrid(grid: Grid) {
+    this.grid = grid;
+  }
+  
+  async findPath(sx: number, sy: number, tx: number, ty: number): Promise<Array<{x: number, y: number}>> {
+    // Simple straight-line path for legacy compatibility
+    const path: Array<{x: number, y: number}> = [];
+    let x = sx, y = sy;
+    while (x !== tx || y !== ty) {
+      if (x < tx) x++;
+      else if (x > tx) x--;
+      if (y < ty) y++;
+      else if (y > ty) y--;
+      path.push({ x, y });
+    }
+    return path;
+  }
+}
 
 // Worker state
 let params: SimParams

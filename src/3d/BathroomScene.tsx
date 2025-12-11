@@ -1,6 +1,6 @@
 // 3D Bathroom Scene - Main Scene Component with Dynamic Sizing
 
-import { useMemo, Suspense } from 'react';
+import React, { useMemo, Suspense } from 'react';
 import { CASimulation } from '../engine/ca-simulation';
 import { CellType, PersonState } from '../engine/ca-types';
 import { CheckeredFloor } from './Floor';
@@ -47,13 +47,13 @@ export function BathroomScene({ simulation, cellSize = 1 }: BathroomSceneProps) 
 
   // Build scene elements from grid
   const sceneElements = useMemo(() => {
-    const internalWalls: JSX.Element[] = [];
-    const stalls: JSX.Element[] = [];
-    const urinals: JSX.Element[] = [];
-    const sinks: JSX.Element[] = [];
-    const changingTables: JSX.Element[] = [];
-    const entrances: JSX.Element[] = [];
-    const queueMarkers: JSX.Element[] = [];
+    const internalWalls: React.ReactElement[] = [];
+    const stalls: React.ReactElement[] = [];
+    const urinals: React.ReactElement[] = [];
+    const sinks: React.ReactElement[] = [];
+    const changingTables: React.ReactElement[] = [];
+    const entrances: React.ReactElement[] = [];
+    const queueMarkers: React.ReactElement[] = [];
 
     // Get continuous wall segments (efficient rendering)
     const wallSegments = grid.getWallSegments();
