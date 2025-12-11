@@ -27,7 +27,7 @@ export class Person {
   
   // Times (adjusted by character modifiers)
   baseDwellTime: number;
-  baseSinkTime: number;f
+  baseSinkTime: number;
   dwellTime: number;
   sinkTime: number;
   changingTableTime: number;

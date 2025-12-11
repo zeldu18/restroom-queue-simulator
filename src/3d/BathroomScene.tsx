@@ -45,13 +45,9 @@ export function BathroomScene({ simulation, cellSize = 1 }: BathroomSceneProps) 
     return [col * cellSize, 0, row * cellSize];
   };
 
-  // Build scene elements from grid
-  const sceneElements = useMemo(() => {
+  // Build STATIC scene elements (walls, entrances, queue markers) - memoized
+  const staticElements = useMemo(() => {
     const internalWalls: React.ReactElement[] = [];
-    const stalls: React.ReactElement[] = [];
-    const urinals: React.ReactElement[] = [];
-    const sinks: React.ReactElement[] = [];
-    const changingTables: React.ReactElement[] = [];
     const entrances: React.ReactElement[] = [];
     const queueMarkers: React.ReactElement[] = [];
 
@@ -140,7 +136,17 @@ export function BathroomScene({ simulation, cellSize = 1 }: BathroomSceneProps) 
       }
     }
 
-    // Process fixtures
+    return { internalWalls, entrances, queueMarkers };
+  }, [grid, cellSize, minCol, maxCol, minRow, maxRow]);
+
+  // Build DYNAMIC fixture elements - NOT memoized so occupancy updates in real-time
+  const buildFixtureElements = () => {
+    const stalls: React.ReactElement[] = [];
+    const urinals: React.ReactElement[] = [];
+    const sinks: React.ReactElement[] = [];
+    const changingTables: React.ReactElement[] = [];
+
+    // Process fixtures with current occupancy status
     grid.stalls.forEach((stall, idx) => {
       const pos = toWorld(stall.col, stall.row);
       // Show as occupied if someone has claimed this stall (regardless of state)
@@ -195,8 +201,11 @@ export function BathroomScene({ simulation, cellSize = 1 }: BathroomSceneProps) 
       );
     });
 
-    return { internalWalls, stalls, urinals, sinks, changingTables, entrances, queueMarkers };
-  }, [grid, simulation.people, cellSize, minCol, maxCol, minRow, maxRow]);
+    return { stalls, urinals, sinks, changingTables };
+  };
+
+  // Get fixture elements (re-computed every render to reflect occupancy changes)
+  const fixtureElements = buildFixtureElements();
 
   // Render agents (don't use useMemo - simulation.people array reference doesn't change)
   const visiblePeople = simulation.people.filter(p => p.state !== PersonState.DONE);
@@ -267,14 +276,16 @@ export function BathroomScene({ simulation, cellSize = 1 }: BathroomSceneProps) 
       {/* Perimeter Walls */}
       {perimeterWalls}
 
-      {/* Scene elements */}
-      {sceneElements.internalWalls}
-      {sceneElements.stalls}
-      {sceneElements.urinals}
-      {sceneElements.sinks}
-      {sceneElements.changingTables}
-      {sceneElements.entrances}
-      {sceneElements.queueMarkers}
+      {/* Static elements (walls, entrances, queue markers) - memoized */}
+      {staticElements.internalWalls}
+      {staticElements.entrances}
+      {staticElements.queueMarkers}
+
+      {/* Dynamic fixture elements (with real-time occupancy updates) */}
+      {fixtureElements.stalls}
+      {fixtureElements.urinals}
+      {fixtureElements.sinks}
+      {fixtureElements.changingTables}
 
       {/* Agents */}
       {agents}
