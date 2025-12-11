@@ -1,6 +1,6 @@
-import { useEffect, useRef } from 'react'
-import { Application, Graphics, Text } from 'pixi.js'
-import stadium from '../presets/layouts/stadium.json'
+import { useEffect, useRef, useMemo } from 'react'
+import { Application, Graphics, Text, Container } from 'pixi.js'
+import stadiumDefault from '../presets/layouts/stadium.json'
 import type { Fixture, Grid, GridCell, Layout, CellType } from '../engine/types'
 
 // Add tile rendering helpers at the top
@@ -18,6 +18,10 @@ const tileMap: Record<string, {x:number,y:number}> = {
   BLOCKED: {x:7,y:0},
 };
 
+// Canvas dimensions
+const CANVAS_MAX_WIDTH = 320;
+const CANVAS_MAX_HEIGHT = 600;
+
 type Props = {
   grid?: Grid
   layout?: Layout
@@ -26,10 +30,13 @@ type Props = {
 
 export default function LayoutGrid(props: Props){
 const ref = useRef<HTMLDivElement>(null)
-const gridSize = (stadium as any).gridSize || 20
-const width = (stadium as any).width
-const height = (stadium as any).height
-const fixtures = (stadium as any).fixtures as Fixture[]
+
+// Use props.layout if provided, otherwise fall back to default
+const activeLayout = useMemo(() => props.layout ?? (stadiumDefault as Layout), [props.layout])
+const gridSize = activeLayout.gridSize || 20
+const width = activeLayout.width
+const height = activeLayout.height
+const fixtures = activeLayout.fixtures as Fixture[]
 
 
 useEffect(()=>{
@@ -38,23 +45,46 @@ let app: Application | null = null
 let disposed = false
 ;(async () => {
 const created = new Application()
-await created.init({ width: 320, height: 600, background: '#161616' })
+
+// Calculate scale to fit layout in canvas while maintaining aspect ratio
+const scaleX = CANVAS_MAX_WIDTH / width
+const scaleY = CANVAS_MAX_HEIGHT / height
+const scale = Math.min(scaleX, scaleY)
+
+// Calculate actual canvas size based on scale
+const canvasWidth = Math.ceil(width * scale)
+const canvasHeight = Math.ceil(height * scale)
+
+// Center offset if one dimension is smaller
+const offsetX = Math.max(0, (CANVAS_MAX_WIDTH - canvasWidth) / 2)
+const offsetY = Math.max(0, (CANVAS_MAX_HEIGHT - canvasHeight) / 2)
+
+await created.init({ width: CANVAS_MAX_WIDTH, height: CANVAS_MAX_HEIGHT, background: '#161616' })
 if(disposed) return
 app = created
 ref.current!.appendChild(app.canvas)
-const g = new Graphics(); app.stage.addChild(g)
 
-// Scale factor to fit the layout in the 320px wide panel
-const scale = 320 / width
+// Create container for the drawing to apply offset
+const container = new Container()
+container.x = offsetX
+container.y = offsetY
+app.stage.addChild(container)
+
+const g = new Graphics()
+container.addChild(g)
 
 const draw = ()=>{
 g.clear()
+
+// Draw background for the layout area
+g.rect(0, 0, canvasWidth, canvasHeight).fill(0x1a1a1a)
+
 // Draw grid
-for(let x=0;x<width;x+=gridSize){ 
-  g.moveTo(x*scale,0).lineTo(x*scale,height*scale) 
+for(let x=0;x<=width;x+=gridSize){ 
+  g.moveTo(x*scale,0).lineTo(x*scale,canvasHeight) 
 }
-for(let y=0;y<height;y+=gridSize){ 
-  g.moveTo(0,y*scale).lineTo(width*scale,y*scale) 
+for(let y=0;y<=height;y+=gridSize){ 
+  g.moveTo(0,y*scale).lineTo(canvasWidth,y*scale) 
 }
 g.stroke({ width: 1, color: 0x2a2a2a, alpha: 0.3 })
 
@@ -106,7 +136,7 @@ fixtures.forEach(fixture => {
     const labelText = new Text({
       text: label,
       style: {
-        fontSize: 8,
+        fontSize: Math.max(8, Math.min(12, scale * 8)),
         fill: 0xffffff,
         align: 'center',
         fontWeight: 'bold'
@@ -114,7 +144,7 @@ fixtures.forEach(fixture => {
     })
     labelText.x = x + w/2 - labelText.width/2
     labelText.y = y + h/2 - labelText.height/2
-    if (app) app.stage.addChild(labelText)
+    container.addChild(labelText)
   }
 })
 }
@@ -123,7 +153,7 @@ draw()
 })()
 
 return ()=>{ disposed = true; if(app){ app.destroy(); app = null } if(ref.current) ref.current.innerHTML='' }
-}, [ref])
+}, [ref, activeLayout, gridSize, width, height, fixtures])
 
 
 // Replace PIXI grid with div grid with tiles
@@ -141,8 +171,9 @@ if (props.grid) {
   gridWidth = props.grid.width
   gridHeight = props.grid.height
   cells = props.grid.cells
-} else if (props.layout) {
-  const l = props.layout
+} else {
+  // Use activeLayout (from props.layout or default)
+  const l = activeLayout
   gridWidth = Math.max(1, Math.round(l.width / l.gridSize))
   gridHeight = Math.max(1, Math.round(l.height / l.gridSize))
   const idx = (x:number,y:number)=> y*gridWidth + x
@@ -169,44 +200,50 @@ if (props.grid) {
     const t = map[f.kind] ?? 'FLOOR'
     markRect(f.x, f.y, f.w, f.h, t)
   })
-} else {
-  // Fallback demo
-  gridWidth = 10
-  gridHeight = 10
-  cells = Array.from({length: gridWidth * gridHeight}, (_, i) => ({
-    x: i % gridWidth,
-    y: Math.floor(i / gridWidth),
-    type: (['FLOOR','WALL','DOOR','STALL','URINAL','SINK','QUEUE','BLOCKED'] as const)[i%8] as CellType
-  }))
 }
 
 return (
-  <div
-    style={{
-      display: 'grid',
-      gridTemplateColumns: `repeat(${gridWidth}, ${effectiveTile}px)`,
-      gridTemplateRows: `repeat(${gridHeight}, ${effectiveTile}px)`,
-      width: gridWidth * effectiveTile,
-      height: gridHeight * effectiveTile,
-      position: 'relative',
-      border: '2px solid #222',
-      background: '#222',
-    }}
-  >
-    {cells.map((cell, idx) => {
-      const type = (cell as any)?.type ?? 'FLOOR'
-      const sprite = tileMap[type] || tileMap.FLOOR
-      const style = {
-        width: effectiveTile,
-        height: effectiveTile,
-        backgroundImage: 'url("/tiles/bathroom-tiles.png")',
-        backgroundPosition: `-${sprite.x * effectiveTile}px -${sprite.y * effectiveTile}px`,
-        backgroundSize: `${effectiveTile * TILE_COLS}px ${effectiveTile * TILE_ROWS}px`,
-        backgroundRepeat: 'no-repeat',
-        imageRendering: 'pixelated',
-      } as React.CSSProperties
-      return <div key={idx} style={style} />
-    })}
+  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+    {/* PIXI Blueprint View */}
+    <div 
+      ref={ref} 
+      style={{ 
+        width: CANVAS_MAX_WIDTH, 
+        height: CANVAS_MAX_HEIGHT, 
+        border: '2px solid #333',
+        borderRadius: '4px',
+        overflow: 'hidden'
+      }} 
+    />
+    
+    {/* CSS Grid Tile View */}
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: `repeat(${gridWidth}, ${effectiveTile}px)`,
+        gridTemplateRows: `repeat(${gridHeight}, ${effectiveTile}px)`,
+        width: gridWidth * effectiveTile,
+        height: gridHeight * effectiveTile,
+        position: 'relative',
+        border: '2px solid #222',
+        background: '#222',
+      }}
+    >
+      {cells.map((cell, idx) => {
+        const type = (cell as any)?.type ?? 'FLOOR'
+        const sprite = tileMap[type] || tileMap.FLOOR
+        const style = {
+          width: effectiveTile,
+          height: effectiveTile,
+          backgroundImage: 'url("/tiles/bathroom-tiles.png")',
+          backgroundPosition: `-${sprite.x * effectiveTile}px -${sprite.y * effectiveTile}px`,
+          backgroundSize: `${effectiveTile * TILE_COLS}px ${effectiveTile * TILE_ROWS}px`,
+          backgroundRepeat: 'no-repeat',
+          imageRendering: 'pixelated',
+        } as React.CSSProperties
+        return <div key={idx} style={style} />
+      })}
+    </div>
   </div>
 )
 }

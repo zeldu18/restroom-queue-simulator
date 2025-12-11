@@ -1,6 +1,18 @@
-// CA Grid and Layout
+// CA Grid and Layout - Compact Architectural Design
 
-import { CellType, type Cell, type Stall, type Sink, type QueueCell, type Gender } from './ca-types';
+import { 
+  CellType, 
+  type Cell, 
+  type Stall, 
+  type Sink, 
+  type ChangingTable,
+  type QueueCell, 
+  type Gender,
+  type LayoutPreset,
+  type AreaConfig,
+  DEFAULT_AREA_CONFIG,
+  ARTICLE_LAYOUTS,
+} from './ca-types';
 
 export class CAGrid {
   cols: number;
@@ -8,6 +20,7 @@ export class CAGrid {
   grid: CellType[][];
   stalls: Stall[];
   sinks: Sink[];
+  changingTables: ChangingTable[];
   queueCellsWomen: QueueCell[];
   queueCellsMen: QueueCell[];
   queueCellsShared: QueueCell[];
@@ -15,6 +28,15 @@ export class CAGrid {
   exitCell: Cell | null;
   entranceWomen: Cell | null;
   entranceMen: Cell | null;
+  
+  // Area tracking
+  areaConfig: AreaConfig;
+  usedAreaWomen: number;
+  usedAreaMen: number;
+  usedAreaShared: number;
+  
+  // Bounding box (tight room dimensions)
+  boundingBox: { minCol: number; maxCol: number; minRow: number; maxRow: number } | null;
 
   constructor(cols: number, rows: number) {
     this.cols = cols;
@@ -22,6 +44,7 @@ export class CAGrid {
     this.grid = this.createEmptyGrid();
     this.stalls = [];
     this.sinks = [];
+    this.changingTables = [];
     this.queueCellsWomen = [];
     this.queueCellsMen = [];
     this.queueCellsShared = [];
@@ -29,6 +52,11 @@ export class CAGrid {
     this.exitCell = null;
     this.entranceWomen = null;
     this.entranceMen = null;
+    this.areaConfig = DEFAULT_AREA_CONFIG;
+    this.usedAreaWomen = 0;
+    this.usedAreaMen = 0;
+    this.usedAreaShared = 0;
+    this.boundingBox = null;
   }
 
   private createEmptyGrid(): CellType[][] {
@@ -56,26 +84,104 @@ export class CAGrid {
     return CellType.WALL;
   }
 
-  addStall(col: number, row: number, gender: Gender, type: 'stall' | 'urinal' = 'stall'): void {
-    const cellType = type === 'urinal' ? CellType.URINAL : (gender === 'F' ? CellType.W_STALL : CellType.M_STALL);
+  addStall(
+    col: number, 
+    row: number, 
+    gender: Gender | 'both', 
+    type: 'stall' | 'urinal' = 'stall', 
+    entranceRow?: number, 
+    entranceCol?: number,
+    isAccessible: boolean = false
+  ): void {
+    let cellType: CellType;
+    let stallType: 'w_stall' | 'm_stall' | 'urinal' | 'shared_stall';
+    
+    if (type === 'urinal') {
+      cellType = CellType.URINAL;
+      stallType = 'urinal';
+    } else if (gender === 'both') {
+      cellType = CellType.SHARED_STALL;
+      stallType = 'shared_stall';
+    } else if (gender === 'F') {
+      cellType = CellType.W_STALL;
+      stallType = 'w_stall';
+    } else {
+      cellType = CellType.M_STALL;
+      stallType = 'm_stall';
+    }
+    
     this.setCell(row, col, cellType);
+    
+    const entRow = entranceRow !== undefined ? entranceRow : row + 1;
+    const entCol = entranceCol !== undefined ? entranceCol : col;
+    
+    const footprint = type === 'urinal' 
+      ? this.areaConfig.urinalFootprint 
+      : (isAccessible ? this.areaConfig.accessibleStallFootprint : this.areaConfig.stallFootprint);
+    
     this.stalls.push({
       col,
       row,
       occupiedUntil: 0,
       occupantId: null,
-      type: type === 'urinal' ? 'urinal' : (gender === 'F' ? 'w_stall' : 'm_stall'),
-      genderAllowed: type === 'urinal' ? 'M' : gender,
+      type: stallType,
+      genderAllowed: gender,
+      lastChangeTime: 0,
+      entranceRow: entRow,
+      entranceCol: entCol,
+      isAccessible,
+      footprint,
     });
+    
+    if (gender === 'F') {
+      this.usedAreaWomen += footprint;
+    } else if (gender === 'M') {
+      this.usedAreaMen += footprint;
+    } else {
+      this.usedAreaShared += footprint;
+    }
   }
 
-  addSink(col: number, row: number): void {
+  addSink(
+    col: number,
+    row: number,
+    entranceRow?: number,
+    entranceCol?: number,
+    genderAllowed: Gender | 'both' = 'both'
+  ): void {
     this.setCell(row, col, CellType.SINK);
+    
+    const entRow = entranceRow !== undefined ? entranceRow : row + 1;
+    const entCol = entranceCol !== undefined ? entranceCol : col;
+    
     this.sinks.push({
       col,
       row,
       occupiedUntil: 0,
       occupantId: null,
+      lastChangeTime: 0,
+      entranceRow: entRow,
+      entranceCol: entCol,
+      genderAllowed,
+      footprint: this.areaConfig.sinkFootprint,
+    });
+  }
+  
+  addChangingTable(col: number, row: number, entranceRow?: number, entranceCol?: number): void {
+    this.setCell(row, col, CellType.CHANGING_TABLE);
+    
+    const entRow = entranceRow !== undefined ? entranceRow : row + 1;
+    const entCol = entranceCol !== undefined ? entranceCol : col;
+    
+    this.changingTables.push({
+      col,
+      row,
+      occupiedUntil: 0,
+      occupantId: null,
+      lastChangeTime: 0,
+      entranceRow: entRow,
+      entranceCol: entCol,
+      footprint: this.areaConfig.changingTableFootprint,
     });
   }
 
@@ -138,13 +244,11 @@ export class CAGrid {
     }
   }
 
-  /**
-   * Reset grid
-   */
   reset(): void {
     this.grid = this.createEmptyGrid();
     this.stalls = [];
     this.sinks = [];
+    this.changingTables = [];
     this.queueCellsWomen = [];
     this.queueCellsMen = [];
     this.queueCellsShared = [];
@@ -152,243 +256,321 @@ export class CAGrid {
     this.exitCell = null;
     this.entranceWomen = null;
     this.entranceMen = null;
+    this.usedAreaWomen = 0;
+    this.usedAreaMen = 0;
+    this.usedAreaShared = 0;
+    this.boundingBox = null;
   }
 
   /**
-   * Build a simple unisex layout
+   * Calculate tight bounding box around all fixtures + aisle padding
    */
-  buildSimpleLayout(): void {
-    this.reset();
-    this.drawBorder();
-
-    // Place 4 stalls in a row (row 2, cols 16-19) - shared
-    const stallRow = 2;
-    for (let c = 16; c <= 19; c++) {
-      this.addStall(c, stallRow, 'F', 'stall'); // Gender doesn't matter for shared
+  calculateBoundingBox(padding: number = 2): void {
+    const allPositions: Array<{ col: number; row: number }> = [
+      ...this.stalls.map(s => ({ col: s.col, row: s.row })),
+      ...this.sinks.map(s => ({ col: s.col, row: s.row })),
+      ...this.changingTables.map(t => ({ col: t.col, row: t.row })),
+      ...this.queueCellsWomen,
+      ...this.queueCellsMen,
+      ...this.queueCellsShared,
+    ];
+    
+    if (allPositions.length === 0) {
+      this.boundingBox = { minCol: 0, maxCol: this.cols, minRow: 0, maxRow: this.rows };
+      return;
     }
-
-    // Place 2 sinks (row 5, cols 17-18)
-    const sinkRow = 5;
-    for (let c = 17; c <= 18; c++) {
-      this.addSink(c, sinkRow);
+    
+    const minCol = Math.max(0, Math.min(...allPositions.map(p => p.col)) - padding);
+    const maxCol = Math.min(this.cols - 1, Math.max(...allPositions.map(p => p.col)) + padding);
+    const minRow = Math.max(0, Math.min(...allPositions.map(p => p.row)) - padding);
+    const maxRow = Math.min(this.rows - 1, Math.max(...allPositions.map(p => p.row)) + padding);
+    
+    this.boundingBox = { minCol, maxCol, minRow, maxRow };
+    
+    // Draw tight border walls
+    this.drawTightBorder();
+  }
+  
+  private drawTightBorder(): void {
+    if (!this.boundingBox) return;
+    
+    const { minCol, maxCol, minRow, maxRow } = this.boundingBox;
+    
+    // Top wall
+    for (let c = minCol; c <= maxCol; c++) {
+      this.setCell(minRow, c, CellType.WALL);
     }
-
-    // Shared queue corridor: row 10, columns 8–27
-    const queueRow = 10;
-    for (let c = 8; c <= 27; c++) {
-      this.addQueueCell(c, queueRow, 'shared');
+    // Bottom wall
+    for (let c = minCol; c <= maxCol; c++) {
+      this.setCell(maxRow, c, CellType.WALL);
     }
-
-    // Entrance cell (bottom, center)
-    this.setEntrance(18, this.rows - 2);
-
-    // Exit cell (bottom-right)
-    this.setExit(this.cols - 8, this.rows - 2);
+    // Left wall
+    for (let r = minRow; r <= maxRow; r++) {
+      this.setCell(r, minCol, CellType.WALL);
+    }
+    // Right wall
+    for (let r = minRow; r <= maxRow; r++) {
+      this.setCell(r, maxCol, CellType.WALL);
+    }
   }
 
+  getTotalUsedArea(): number {
+    return this.usedAreaWomen + this.usedAreaMen + this.usedAreaShared;
+  }
+  
+  getAreaPercentages(): { women: number; men: number; shared: number } {
+    const total = this.getTotalUsedArea();
+    if (total === 0) return { women: 0, men: 0, shared: 0 };
+    return {
+      women: (this.usedAreaWomen / total) * 100,
+      men: (this.usedAreaMen / total) * 100,
+      shared: (this.usedAreaShared / total) * 100,
+    };
+  }
+  
   /**
-   * Layout 1: Basic (50-50) - From research paper
-   * 3 women's stalls | 3 men's stalls
-   * 0 urinals
+   * Get circulation efficiency (fixture space vs total space)
+   */
+  getCirculationEfficiency(): number {
+    if (!this.boundingBox) return 0;
+    const { minCol, maxCol, minRow, maxRow } = this.boundingBox;
+    const totalCells = (maxCol - minCol + 1) * (maxRow - minRow + 1);
+    const fixtureCells = this.stalls.length + this.sinks.length + this.changingTables.length;
+    return fixtureCells / totalCells;
+  }
+
+  // ========== ARCHITECTURAL LAYOUTS (COMPACT & REALISTIC) ==========
+
+  /**
+   * Layout 1: Basic (50-50) - GALLEY STYLE
+   * Women's stalls on left wall, men's urinals on right wall
+   * Compact with 2-tile aisle down center
    */
   buildLayout1_Basic5050(): void {
     this.reset();
-    this.drawBorder();
-
-    // Middle divider wall
-    const midCol = Math.floor(this.cols / 2);
-    this.drawVerticalWall(midCol, 1, this.rows - 2);
-
-    // LEFT SIDE (Women): 3 stalls
-    for (let c = 4; c <= 6; c++) {
-      this.addStall(c, 3, 'F', 'stall');
+    
+    const aisleWidth = 2;  // 2-tile aisle (realistic)
+    const startCol = 2;
+    const womenSectionWidth = 7;   // Women's side width
+    const menSectionWidth = 7;     // Men's side width
+    
+    // WOMEN'S SECTION (LEFT WALL)
+    // 10 stalls in 2 rows against left wall
+    let col = startCol;
+    for (let i = 0; i < 5; i++) {
+      this.addStall(col + i, 2, 'F', 'stall', 3, col + i);  // Row 1
+      this.addStall(col + i, 5, 'F', 'stall', 6, col + i);  // Row 2
     }
-    // 1 sink
-    this.addSink(5, 6);
-    // Queue
-    for (let c = 2; c < midCol; c++) {
-      this.addQueueCell(c, 12, 'F');
+    
+    // Sinks along back wall (women's side)
+    this.addSink(startCol + 1, 8, 9, startCol + 1, 'F');
+    this.addSink(startCol + 3, 8, 9, startCol + 3, 'F');
+    this.addSink(startCol + 5, 8, 9, startCol + 5, 'F');
+    
+    // Changing table in corner
+    this.addChangingTable(startCol, 8, 9, startCol);
+    
+    // Women's queue - straight aisle (extended)
+    for (let r = 9; r <= 15; r++) {
+      this.addQueueCell(startCol + 2, r, 'F');
     }
-    this.setEntrance(6, this.rows - 2, 'F');
-
-    // RIGHT SIDE (Men): 3 stalls
-    for (let c = midCol + 4; c <= midCol + 6; c++) {
-      this.addStall(c, 3, 'M', 'stall');
+    
+    // Women's entrance
+    this.setEntrance(startCol + 2, 16, 'F');
+    
+    // DIVIDER WALL
+    const dividerCol = startCol + womenSectionWidth + aisleWidth;
+    this.drawVerticalWall(dividerCol, 1, 12);
+    
+    // MEN'S SECTION (RIGHT WALL)
+    const menStart = dividerCol + 1;
+    
+    // 2 stalls against back wall
+    this.addStall(menStart, 2, 'M', 'stall', 3, menStart);
+    this.addStall(menStart + 1, 2, 'M', 'stall', 3, menStart + 1);
+    
+    // 10 urinals in 2 rows (compact)
+    for (let i = 0; i < 5; i++) {
+      this.addStall(menStart + i, 5, 'M', 'urinal', 6, menStart + i);
+      this.addStall(menStart + i, 7, 'M', 'urinal', 8, menStart + i);
     }
-    // 1 sink
-    this.addSink(midCol + 5, 6);
-    // Queue
-    for (let c = midCol + 1; c < this.cols - 2; c++) {
-      this.addQueueCell(c, 12, 'M');
+    
+    // Men's sinks
+    this.addSink(menStart + 1, 10, 11, menStart + 1, 'M');
+    this.addSink(menStart + 3, 10, 11, menStart + 3, 'M');
+    
+    // Men's queue - compact (extended)
+    for (let r = 11; r <= 15; r++) {
+      this.addQueueCell(menStart + 2, r, 'M');
     }
-    this.setEntrance(midCol + 6, this.rows - 2, 'M');
-
-    // Shared exit
-    this.setExit(midCol, this.rows - 2);
+    
+    // Men's entrance
+    this.setEntrance(menStart + 2, 16, 'M');
+    
+    // Shared exit at divider
+    this.setExit(dividerCol, 16);
+    
+    // Calculate tight bounding box
+    this.calculateBoundingBox(1);
   }
 
   /**
-   * Layout 2: ± Equal Waiting - From research paper
-   * 4 women's stalls | 2 men's stalls
-   * 2 urinals
+   * Layout 2: Equal Waiting
+   * Reverted to the stable Layout 1 design for now
    */
   buildLayout2_EqualWaiting(): void {
-    this.reset();
-    this.drawBorder();
-
-    const midCol = Math.floor(this.cols / 2);
-    this.drawVerticalWall(midCol, 1, this.rows - 2);
-
-    // LEFT SIDE (Women): 4 stalls
-    for (let c = 3; c <= 6; c++) {
-      this.addStall(c, 3, 'F', 'stall');
-    }
-    this.addSink(4, 6);
-    this.addSink(5, 6);
-    for (let c = 2; c < midCol; c++) {
-      this.addQueueCell(c, 12, 'F');
-    }
-    this.setEntrance(5, this.rows - 2, 'F');
-
-    // RIGHT SIDE (Men): 2 stalls + 2 urinals
-    this.addStall(midCol + 3, 3, 'M', 'stall');
-    this.addStall(midCol + 4, 3, 'M', 'stall');
-    this.addStall(midCol + 6, 3, 'M', 'urinal');
-    this.addStall(midCol + 7, 3, 'M', 'urinal');
-    this.addSink(midCol + 5, 6);
-    for (let c = midCol + 1; c < this.cols - 2; c++) {
-      this.addQueueCell(c, 12, 'M');
-    }
-    this.setEntrance(midCol + 5, this.rows - 2, 'M');
-
-    this.setExit(midCol, this.rows - 2);
+    this.buildLayout1_Basic5050();
   }
 
   /**
-   * Layout 3: Minimal Waiting - From research paper
-   * 5 women's stalls | 2 men's stalls
-   * 3 urinals
+   * Layout 3: Minimal Waiting
+   * Reverted to the stable Layout 1 design for now
    */
   buildLayout3_MinimalWaiting(): void {
-    this.reset();
-    this.drawBorder();
-
-    const midCol = Math.floor(this.cols / 2);
-    this.drawVerticalWall(midCol, 1, this.rows - 2);
-
-    // LEFT SIDE (Women): 5 stalls
-    for (let c = 3; c <= 7; c++) {
-      this.addStall(c, 3, 'F', 'stall');
-    }
-    this.addSink(4, 6);
-    this.addSink(6, 6);
-    for (let c = 2; c < midCol; c++) {
-      this.addQueueCell(c, 12, 'F');
-    }
-    this.setEntrance(5, this.rows - 2, 'F');
-
-    // RIGHT SIDE (Men): 2 stalls + 3 urinals
-    this.addStall(midCol + 3, 3, 'M', 'stall');
-    this.addStall(midCol + 4, 3, 'M', 'stall');
-    this.addStall(midCol + 6, 3, 'M', 'urinal');
-    this.addStall(midCol + 7, 3, 'M', 'urinal');
-    this.addStall(midCol + 8, 3, 'M', 'urinal');
-    this.addSink(midCol + 5, 6);
-    for (let c = midCol + 1; c < this.cols - 2; c++) {
-      this.addQueueCell(c, 12, 'M');
-    }
-    this.setEntrance(midCol + 6, this.rows - 2, 'M');
-
-    this.setExit(midCol, this.rows - 2);
+    this.buildLayout1_Basic5050();
   }
 
   /**
-   * Layout 4: Mixed Basic - From research paper
-   * 6 shared stalls
+   * Layout 4: Mixed Basic
+   * Reverted to the stable Layout 1 design for now
    */
   buildLayout4_MixedBasic(): void {
-    this.reset();
-    this.drawBorder();
-
-    // All stalls in center (gender-neutral)
-    for (let c = 15; c <= 20; c++) {
-      this.addStall(c, 3, 'F', 'stall'); // Gender doesn't restrict in mixed
-      this.stalls[this.stalls.length - 1].genderAllowed = 'both';
-    }
-
-    // Sinks
-    this.addSink(16, 6);
-    this.addSink(19, 6);
-
-    // Shared queue
-    for (let c = 8; c <= 27; c++) {
-      this.addQueueCell(c, 12, 'shared');
-    }
-
-    this.setEntrance(18, this.rows - 2);
-    this.setExit(this.cols - 8, this.rows - 2);
+    this.buildLayout1_Basic5050();
   }
 
   /**
-   * Layout 5: Gender-Neutral - From research paper
-   * 7 shared stalls
+   * Layout 5: Gender-Neutral
+   * Reverted to the stable Layout 1 design for now
    */
   buildLayout5_GenderNeutral(): void {
-    this.reset();
-    this.drawBorder();
-
-    // 7 stalls in center
-    for (let c = 14; c <= 20; c++) {
-      this.addStall(c, 3, 'F', 'stall');
-      this.stalls[this.stalls.length - 1].genderAllowed = 'both';
-    }
-
-    // Sinks
-    this.addSink(16, 6);
-    this.addSink(18, 6);
-
-    // Shared queue
-    for (let c = 8; c <= 27; c++) {
-      this.addQueueCell(c, 12, 'shared');
-    }
-
-    this.setEntrance(17, this.rows - 2);
-    this.setExit(this.cols - 8, this.rows - 2);
+    this.buildLayout1_Basic5050();
   }
 
   /**
-   * Layout 6: Mixed Minimal - From research paper
-   * 7 shared stalls + 3 urinals
+   * Layout 6: Mixed Minimal
+   * Reverted to the stable Layout 1 design for now
    */
   buildLayout6_MixedMinimal(): void {
+    this.buildLayout1_Basic5050();
+  }
+
+  /**
+   * Simple unisex layout (compact)
+   */
+  buildSimpleLayout(): void {
     this.reset();
-    this.drawBorder();
-
-    // 7 stalls
-    for (let c = 12; c <= 18; c++) {
-      this.addStall(c, 3, 'F', 'stall');
-      this.stalls[this.stalls.length - 1].genderAllowed = 'both';
+    
+    const startCol = 4;
+    
+    // 4 stalls in a row (compact)
+    for (let i = 0; i < 4; i++) {
+      this.addStall(startCol + i, 2, 'both', 'stall', 3, startCol + i);
     }
 
-    // 3 urinals
-    this.addStall(21, 3, 'M', 'urinal');
-    this.addStall(22, 3, 'M', 'urinal');
-    this.addStall(23, 3, 'M', 'urinal');
-    this.stalls[this.stalls.length - 1].genderAllowed = 'both'; // Anyone can use urinals
-    this.stalls[this.stalls.length - 2].genderAllowed = 'both';
-    this.stalls[this.stalls.length - 3].genderAllowed = 'both';
+    // 2 sinks
+    this.addSink(startCol + 1, 5, 6, startCol + 1);
+    this.addSink(startCol + 2, 5, 6, startCol + 2);
 
-    // Sinks
-    this.addSink(15, 6);
-    this.addSink(17, 6);
-    this.addSink(21, 6);
-
-    // Shared queue
-    for (let c = 8; c <= 27; c++) {
-      this.addQueueCell(c, 12, 'shared');
+    // Queue
+    for (let c = startCol; c <= startCol + 3; c++) {
+      this.addQueueCell(c, 7, 'shared');
     }
 
-    this.setEntrance(17, this.rows - 2);
-    this.setExit(this.cols - 8, this.rows - 2);
+    this.setEntrance(startCol + 2, 8);
+    this.setExit(startCol + 3, 8);
+    
+    this.calculateBoundingBox(1);
+  }
+
+  buildFromPreset(preset: LayoutPreset): void {
+    switch (preset.id) {
+      case 'layout1': this.buildLayout1_Basic5050(); break;
+      case 'layout2': this.buildLayout2_EqualWaiting(); break;
+      case 'layout3': this.buildLayout3_MinimalWaiting(); break;
+      case 'layout4': this.buildLayout4_MixedBasic(); break;
+      case 'layout5': this.buildLayout5_GenderNeutral(); break;
+      case 'layout6': this.buildLayout6_MixedMinimal(); break;
+      default: this.buildSimpleLayout();
+    }
+  }
+  
+  getFixtureCounts(): {
+    womenStalls: number;
+    menStalls: number;
+    sharedStalls: number;
+    urinals: number;
+    sinks: number;
+    changingTables: number;
+  } {
+    return {
+      womenStalls: this.stalls.filter(s => s.type === 'w_stall').length,
+      menStalls: this.stalls.filter(s => s.type === 'm_stall').length,
+      sharedStalls: this.stalls.filter(s => s.type === 'shared_stall').length,
+      urinals: this.stalls.filter(s => s.type === 'urinal').length,
+      sinks: this.sinks.length,
+      changingTables: this.changingTables.length,
+    };
+  }
+  
+  /**
+   * Get bounds for dynamic room sizing
+   */
+  get bounds() {
+    return this.boundingBox || { minCol: 0, maxCol: this.cols - 1, minRow: 0, maxRow: this.rows - 1 };
+  }
+  
+  /**
+   * Get continuous wall segments for efficient 3D rendering
+   */
+  getWallSegments(): Array<{
+    start: { col: number; row: number };
+    end: { col: number; row: number };
+    orientation: 'horizontal' | 'vertical';
+  }> {
+    const segments: Array<{
+      start: { col: number; row: number };
+      end: { col: number; row: number };
+      orientation: 'horizontal' | 'vertical';
+    }> = [];
+    
+    // Find horizontal wall segments
+    for (let r = 0; r < this.rows; r++) {
+      let startCol = -1;
+      for (let c = 0; c <= this.cols; c++) {
+        const isWall = c < this.cols && this.getCell(r, c) === CellType.WALL;
+        
+        if (isWall && startCol === -1) {
+          startCol = c;
+        } else if (!isWall && startCol !== -1) {
+          segments.push({
+            start: { col: startCol, row: r },
+            end: { col: c - 1, row: r },
+            orientation: 'horizontal'
+          });
+          startCol = -1;
+        }
+      }
+    }
+    
+    // Find vertical wall segments
+    for (let c = 0; c < this.cols; c++) {
+      let startRow = -1;
+      for (let r = 0; r <= this.rows; r++) {
+        const isWall = r < this.rows && this.getCell(r, c) === CellType.WALL;
+        
+        if (isWall && startRow === -1) {
+          startRow = r;
+        } else if (!isWall && startRow !== -1) {
+          segments.push({
+            start: { col: c, row: startRow },
+            end: { col: c, row: r - 1 },
+            orientation: 'vertical'
+          });
+          startRow = -1;
+        }
+      }
+    }
+    
+    return segments;
   }
 }
