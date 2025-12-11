@@ -656,12 +656,19 @@ export class CASimulation {
     return queueCells.length - 1;
   }
 
+  /**
+   * Called when front person (index 0) leaves queue for a stall.
+   * Shifts everyone forward by decrementing their targetQueueIndex.
+   * This is the ONLY place queue indices are shifted.
+   */
   private popFromQueue(gender: Gender): void {
-    // Also update people walking to queue, not just those already in queue
+    // Shift everyone forward: decrement targetQueueIndex for all in queue
+    // Only shift people who are physically IN_QUEUE (already at their spot)
+    // People WALKING_TO_QUEUE keep their original target to avoid path confusion
     this.people.forEach(p => {
       if (
         p.gender === gender &&
-        (p.state === PersonState.IN_QUEUE || p.state === PersonState.WALKING_TO_QUEUE) &&
+        p.state === PersonState.IN_QUEUE &&
         p.targetQueueIndex !== null &&
         p.targetQueueIndex > 0
       ) {
@@ -675,42 +682,42 @@ export class CASimulation {
     this.maintainQueueOrder('M');
   }
 
+  /**
+   * Resolves conflicts where multiple people target the same queue index.
+   * Does NOT shift indices - that's popFromQueue's job.
+   * Only handles edge cases like people arriving at same slot simultaneously.
+   */
   private maintainQueueOrder(gender: Gender): void {
     const queueCells = this.getQueueCellsForGender(gender);
     if (queueCells.length === 0) return;
 
-    // Include both IN_QUEUE and WALKING_TO_QUEUE people
+    // Build map of which indices are claimed by people IN_QUEUE
     const occupiedByIndex = new Map<number, Person>();
+    
+    // First pass: find all IN_QUEUE people and their claimed indices
     this.people.forEach(p => {
       if (
         p.gender === gender &&
-        (p.state === PersonState.IN_QUEUE || p.state === PersonState.WALKING_TO_QUEUE) &&
+        p.state === PersonState.IN_QUEUE &&
         p.targetQueueIndex !== null &&
         p.targetQueueIndex >= 0
       ) {
-        // If slot already has someone, keep the one who's already in queue
         const existing = occupiedByIndex.get(p.targetQueueIndex);
-        if (!existing || (p.state === PersonState.IN_QUEUE && existing.state !== PersonState.IN_QUEUE)) {
+        if (!existing) {
           occupiedByIndex.set(p.targetQueueIndex, p);
-        }
-      }
-    });
-
-    // Fill gaps in queue - only move people who are IN_QUEUE (not walking)
-    for (let i = 0; i < queueCells.length; i++) {
-      const occupant = occupiedByIndex.get(i);
-      if (!occupant) {
-        for (let j = i + 1; j < queueCells.length; j++) {
-          const p = occupiedByIndex.get(j);
-          if (p && p.state === PersonState.IN_QUEUE) {
-            p.targetQueueIndex = i;
-            occupiedByIndex.delete(j);
-            occupiedByIndex.set(i, p);
-            break;
+        } else {
+          // Conflict! Two people at same index. Move the newer one back.
+          // Find next free slot for the conflict loser
+          for (let newIdx = p.targetQueueIndex + 1; newIdx < queueCells.length; newIdx++) {
+            if (!occupiedByIndex.has(newIdx)) {
+              p.targetQueueIndex = newIdx;
+              occupiedByIndex.set(newIdx, p);
+              break;
+            }
           }
         }
       }
-    }
+    });
   }
   
   private updateQueueStats(): void {

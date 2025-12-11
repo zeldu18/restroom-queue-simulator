@@ -266,14 +266,25 @@ export class CAGrid {
    * Calculate tight bounding box around all fixtures + aisle padding
    */
   calculateBoundingBox(padding: number = 2): void {
+    // BUG FIX: Include entrances and exits in bounding box calculation
+    // Otherwise walls block the entrance and people can't enter!
     const allPositions: Array<{ col: number; row: number }> = [
       ...this.stalls.map(s => ({ col: s.col, row: s.row })),
+      ...this.stalls.map(s => ({ col: s.entranceCol, row: s.entranceRow })), // Include stall entrances
       ...this.sinks.map(s => ({ col: s.col, row: s.row })),
+      ...this.sinks.map(s => ({ col: s.entranceCol, row: s.entranceRow })), // Include sink entrances
       ...this.changingTables.map(t => ({ col: t.col, row: t.row })),
+      ...this.changingTables.map(t => ({ col: t.entranceCol, row: t.entranceRow })), // Include table entrances
       ...this.queueCellsWomen,
       ...this.queueCellsMen,
       ...this.queueCellsShared,
     ];
+    
+    // Include entrance cells
+    if (this.entranceCell) allPositions.push(this.entranceCell);
+    if (this.entranceWomen) allPositions.push(this.entranceWomen);
+    if (this.entranceMen) allPositions.push(this.entranceMen);
+    if (this.exitCell) allPositions.push(this.exitCell);
     
     if (allPositions.length === 0) {
       this.boundingBox = { minCol: 0, maxCol: this.cols, minRow: 0, maxRow: this.rows };
@@ -287,7 +298,7 @@ export class CAGrid {
     
     this.boundingBox = { minCol, maxCol, minRow, maxRow };
     
-    // Draw tight border walls
+    // Draw tight border walls (with doorways for entrances/exits)
     this.drawTightBorder();
   }
   
@@ -296,21 +307,36 @@ export class CAGrid {
     
     const { minCol, maxCol, minRow, maxRow } = this.boundingBox;
     
+    // Collect entrance/exit positions to leave as doorways
+    const doorways = new Set<string>();
+    if (this.entranceCell) doorways.add(`${this.entranceCell.col},${this.entranceCell.row}`);
+    if (this.entranceWomen) doorways.add(`${this.entranceWomen.col},${this.entranceWomen.row}`);
+    if (this.entranceMen) doorways.add(`${this.entranceMen.col},${this.entranceMen.row}`);
+    if (this.exitCell) doorways.add(`${this.exitCell.col},${this.exitCell.row}`);
+    
     // Top wall
     for (let c = minCol; c <= maxCol; c++) {
-      this.setCell(minRow, c, CellType.WALL);
+      if (!doorways.has(`${c},${minRow}`)) {
+        this.setCell(minRow, c, CellType.WALL);
+      }
     }
     // Bottom wall
     for (let c = minCol; c <= maxCol; c++) {
-      this.setCell(maxRow, c, CellType.WALL);
+      if (!doorways.has(`${c},${maxRow}`)) {
+        this.setCell(maxRow, c, CellType.WALL);
+      }
     }
     // Left wall
     for (let r = minRow; r <= maxRow; r++) {
-      this.setCell(r, minCol, CellType.WALL);
+      if (!doorways.has(`${minCol},${r}`)) {
+        this.setCell(r, minCol, CellType.WALL);
+      }
     }
     // Right wall
     for (let r = minRow; r <= maxRow; r++) {
-      this.setCell(r, maxCol, CellType.WALL);
+      if (!doorways.has(`${maxCol},${r}`)) {
+        this.setCell(r, maxCol, CellType.WALL);
+      }
     }
   }
 
