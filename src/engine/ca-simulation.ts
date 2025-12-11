@@ -277,6 +277,27 @@ export class CASimulation {
   }
 
   private updateWalkingToQueue(p: Person): void {
+    // FIRST: Try to get a stall directly if one is available!
+    // Only queue if all stalls are occupied.
+    const freeStall = this.findAvailableStall(p);
+    if (freeStall) {
+      // Go directly to stall - skip the queue!
+      freeStall.occupantId = p.id;
+      
+      // If using urinal, adjust dwell time
+      if (freeStall.type === 'urinal' && p.gender === 'M') {
+        const times = this.config.serviceTimes;
+        p.dwellTime = this.randFloat(times.male.urinalMin, times.male.urinalMax);
+      }
+      
+      p.targetStall = freeStall;
+      p.state = PersonState.WALKING_TO_STALL;
+      p.timeEnteredQueue = this.stats.simTimeSeconds;
+      p.timeLeftQueue = this.stats.simTimeSeconds; // No wait time
+      return;
+    }
+    
+    // No stall available - go to queue
     if (p.targetQueueIndex === null) {
       p.targetQueueIndex = this.getNextQueuePositionIndex(p.gender);
     }
@@ -306,27 +327,26 @@ export class CASimulation {
       p.moveTo(myCell.col, myCell.row);
     }
 
-    // Only the person at index 0 can be released to a fixture
-    if (p.targetQueueIndex === 0 && myCell && p.isAt(myCell)) {
-      const freeStall = this.findAvailableStall(p);
-      if (freeStall) {
-        // Reserve the stall
-        freeStall.occupantId = p.id;
-        
-        // If using urinal, adjust dwell time
-        if (freeStall.type === 'urinal' && p.gender === 'M') {
-          const times = this.config.serviceTimes;
-          p.dwellTime = this.randFloat(times.male.urinalMin, times.male.urinalMax);
-        }
-        
-        // Release from queue
-        p.targetStall = freeStall;
-        p.state = PersonState.WALKING_TO_STALL;
-        p.timeLeftQueue = this.stats.simTimeSeconds;
-        
-        // Remove from queue
-        this.popFromQueue(p.gender);
+    // Anyone in queue can try to get a stall (not just index 0)
+    // This prevents deadlocks where front person can't reach stall
+    const freeStall = this.findAvailableStall(p);
+    if (freeStall) {
+      // Reserve the stall
+      freeStall.occupantId = p.id;
+      
+      // If using urinal, adjust dwell time
+      if (freeStall.type === 'urinal' && p.gender === 'M') {
+        const times = this.config.serviceTimes;
+        p.dwellTime = this.randFloat(times.male.urinalMin, times.male.urinalMax);
       }
+      
+      // Release from queue
+      p.targetStall = freeStall;
+      p.state = PersonState.WALKING_TO_STALL;
+      p.timeLeftQueue = this.stats.simTimeSeconds;
+      
+      // Clear queue position (others will compact)
+      p.targetQueueIndex = null;
     }
   }
 
