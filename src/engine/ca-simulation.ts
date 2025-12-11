@@ -657,10 +657,11 @@ export class CASimulation {
   }
 
   private popFromQueue(gender: Gender): void {
+    // Also update people walking to queue, not just those already in queue
     this.people.forEach(p => {
       if (
         p.gender === gender &&
-        p.state === PersonState.IN_QUEUE &&
+        (p.state === PersonState.IN_QUEUE || p.state === PersonState.WALKING_TO_QUEUE) &&
         p.targetQueueIndex !== null &&
         p.targetQueueIndex > 0
       ) {
@@ -678,26 +679,33 @@ export class CASimulation {
     const queueCells = this.getQueueCellsForGender(gender);
     if (queueCells.length === 0) return;
 
+    // Include both IN_QUEUE and WALKING_TO_QUEUE people
     const occupiedByIndex = new Map<number, Person>();
     this.people.forEach(p => {
       if (
         p.gender === gender &&
-        p.state === PersonState.IN_QUEUE &&
+        (p.state === PersonState.IN_QUEUE || p.state === PersonState.WALKING_TO_QUEUE) &&
         p.targetQueueIndex !== null &&
         p.targetQueueIndex >= 0
       ) {
-        occupiedByIndex.set(p.targetQueueIndex, p);
+        // If slot already has someone, keep the one who's already in queue
+        const existing = occupiedByIndex.get(p.targetQueueIndex);
+        if (!existing || (p.state === PersonState.IN_QUEUE && existing.state !== PersonState.IN_QUEUE)) {
+          occupiedByIndex.set(p.targetQueueIndex, p);
+        }
       }
     });
 
-    // Fill gaps in queue
+    // Fill gaps in queue - only move people who are IN_QUEUE (not walking)
     for (let i = 0; i < queueCells.length; i++) {
       const occupant = occupiedByIndex.get(i);
       if (!occupant) {
         for (let j = i + 1; j < queueCells.length; j++) {
           const p = occupiedByIndex.get(j);
-          if (p) {
+          if (p && p.state === PersonState.IN_QUEUE) {
             p.targetQueueIndex = i;
+            occupiedByIndex.delete(j);
+            occupiedByIndex.set(i, p);
             break;
           }
         }

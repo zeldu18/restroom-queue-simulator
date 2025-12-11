@@ -23,9 +23,10 @@ const DEFAULT_CONFIG = {
 };
 
 // Loading fallback inside Canvas
-function SceneLoader() {
+function SceneLoader({ center }: { center?: [number, number, number] }) {
+  const pos = center || [10, 1, 10];
   return (
-    <mesh position={[16, 1, 9]}>
+    <mesh position={pos}>
       <boxGeometry args={[2, 2, 2]} />
       <meshStandardMaterial color="#8b5cf6" />
     </mesh>
@@ -124,30 +125,38 @@ export default function App3D() {
 
   const counts = simulation.grid.getFixtureCounts();
   const currentLayout = ARTICLE_LAYOUTS.find(l => l.id === selectedLayout);
+  
+  // Calculate center of layout for camera target
+  const bounds = simulation.grid.bounds;
+  const centerX = (bounds.minCol + bounds.maxCol) / 2;
+  const centerZ = (bounds.minRow + bounds.maxRow) / 2;
+  const layoutWidth = bounds.maxCol - bounds.minCol;
+  const layoutDepth = bounds.maxRow - bounds.minRow;
+  const cameraDistance = Math.max(layoutWidth, layoutDepth) * 1.5;
 
   return (
     <div style={{ width: '100vw', height: '100vh', background: '#1a1a2e', display: 'flex' }}>
       {/* 3D Canvas */}
       <div style={{ flex: 1, position: 'relative' }}>
-        <Canvas shadows camera={{ position: [25, 20, 25], fov: 45 }}>
+        <Canvas shadows camera={{ position: [centerX + cameraDistance, cameraDistance * 0.8, centerZ + cameraDistance], fov: 45 }}>
           {/* Lighting */}
           <ambientLight intensity={0.5} />
           <directionalLight
-            position={[20, 30, 20]}
+            position={[centerX + 10, 30, centerZ + 10]}
             intensity={1}
             castShadow
             shadow-mapSize-width={2048}
             shadow-mapSize-height={2048}
           />
           
-          {/* Controls */}
+          {/* Controls - dynamically centered on layout */}
           <OrbitControls 
-            target={[16, 0, 9]}
+            target={[centerX, 0, centerZ]}
             enablePan
             enableZoom
             maxPolarAngle={Math.PI / 2.1}
             minDistance={10}
-            maxDistance={60}
+            maxDistance={80}
           />
 
           {/* Scene */}
@@ -354,72 +363,6 @@ export default function App3D() {
           <div style={{ 
             paddingTop: '0.75rem', 
             borderTop: '1px solid rgba(255,255,255,0.1)',
-            fontSize: '0.85rem'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-              <span>📐 Circ. Efficiency:</span>
-              <span style={{ fontWeight: 600, color: '#10b981' }}>
-                {(simulation.grid.getCirculationEfficiency() * 100).toFixed(0)}%
-              </span>
-            </div>
-            <div style={{ fontSize: '0.7rem', color: '#9ca3af' }}>
-              Fixture space vs. dead space
-            </div>
-          </div>
-        </div>
-
-        {/* Instructions */}
-        <div style={{ 
-          marginTop: '1rem',
-          padding: '1rem',
-          background: 'rgba(99,102,241,0.1)',
-          borderRadius: '8px',
-          fontSize: '0.75rem',
-          color: '#a5b4fc'
-        }}>
-          <strong>🖱️ Controls:</strong>
-          <br />• Left drag: Rotate
-          <br />• Right drag: Pan
-          <br />• Scroll: Zoom
-        </div>
-      </div>
-    </div>
-  );
-}
-
-            fontSize: '0.85rem'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-              <span>📐 Circ. Efficiency:</span>
-              <span style={{ fontWeight: 600, color: '#10b981' }}>
-                {(simulation.grid.getCirculationEfficiency() * 100).toFixed(0)}%
-              </span>
-            </div>
-            <div style={{ fontSize: '0.7rem', color: '#9ca3af' }}>
-              Fixture space vs. dead space
-            </div>
-          </div>
-        </div>
-
-        {/* Instructions */}
-        <div style={{ 
-          marginTop: '1rem',
-          padding: '1rem',
-          background: 'rgba(99,102,241,0.1)',
-          borderRadius: '8px',
-          fontSize: '0.75rem',
-          color: '#a5b4fc'
-        }}>
-          <strong>🖱️ Controls:</strong>
-          <br />• Left drag: Rotate
-          <br />• Right drag: Pan
-          <br />• Scroll: Zoom
-        </div>
-      </div>
-    </div>
-  );
-}
-
             fontSize: '0.85rem'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>

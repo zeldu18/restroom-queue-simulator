@@ -415,43 +415,254 @@ export class CAGrid {
   }
 
   /**
-   * Layout 2: Equal Waiting
-   * Reverted to the stable Layout 1 design for now
+   * Layout 2: Equal Waiting Times (68:32 ratio)
+   * More women's stalls to equalize wait times
+   * 13 women stalls, 2 men stalls, 6 urinals
    */
   buildLayout2_EqualWaiting(): void {
-    this.buildLayout1_Basic5050();
+    this.reset();
+    
+    const startCol = 2;
+    
+    // WOMEN'S SECTION (LARGER - 68%)
+    // 13 stalls in 3 rows
+    for (let i = 0; i < 5; i++) {
+      this.addStall(startCol + i, 2, 'F', 'stall', 3, startCol + i);
+    }
+    for (let i = 0; i < 5; i++) {
+      this.addStall(startCol + i, 4, 'F', 'stall', 5, startCol + i);
+    }
+    for (let i = 0; i < 3; i++) {
+      this.addStall(startCol + i, 6, 'F', 'stall', 7, startCol + i);
+    }
+    
+    // Women's sinks (4)
+    for (let i = 0; i < 4; i++) {
+      this.addSink(startCol + i, 8, 9, startCol + i, 'F');
+    }
+    
+    // Changing table
+    this.addChangingTable(startCol + 4, 8, 9, startCol + 4);
+    
+    // Women's queue
+    for (let r = 9; r <= 15; r++) {
+      this.addQueueCell(startCol + 2, r, 'F');
+    }
+    this.setEntrance(startCol + 2, 16, 'F');
+    
+    // DIVIDER WALL
+    const dividerCol = startCol + 8;
+    this.drawVerticalWall(dividerCol, 1, 12);
+    
+    // MEN'S SECTION (SMALLER - 32%)
+    const menStart = dividerCol + 1;
+    
+    // 2 stalls
+    this.addStall(menStart, 2, 'M', 'stall', 3, menStart);
+    this.addStall(menStart + 1, 2, 'M', 'stall', 3, menStart + 1);
+    
+    // 6 urinals in 2 rows
+    for (let i = 0; i < 3; i++) {
+      this.addStall(menStart + i, 5, 'M', 'urinal', 6, menStart + i);
+      this.addStall(menStart + i, 7, 'M', 'urinal', 8, menStart + i);
+    }
+    
+    // Men's sinks (2)
+    this.addSink(menStart, 10, 11, menStart, 'M');
+    this.addSink(menStart + 2, 10, 11, menStart + 2, 'M');
+    
+    // Men's queue
+    for (let r = 11; r <= 15; r++) {
+      this.addQueueCell(menStart + 1, r, 'M');
+    }
+    this.setEntrance(menStart + 1, 16, 'M');
+    
+    this.setExit(dividerCol, 16);
+    this.calculateBoundingBox(1);
   }
 
   /**
-   * Layout 3: Minimal Waiting
-   * Reverted to the stable Layout 1 design for now
+   * Layout 3: Minimal Waiting Times (55:45 ratio)
+   * Optimized for throughput
+   * 12 women stalls, 2 men stalls, 8 urinals
    */
   buildLayout3_MinimalWaiting(): void {
-    this.buildLayout1_Basic5050();
+    this.reset();
+    
+    const startCol = 2;
+    
+    // WOMEN'S SECTION
+    // 12 stalls in 2 rows of 6
+    for (let i = 0; i < 6; i++) {
+      this.addStall(startCol + i, 2, 'F', 'stall', 3, startCol + i);
+      this.addStall(startCol + i, 5, 'F', 'stall', 6, startCol + i);
+    }
+    
+    // Women's sinks (4)
+    for (let i = 0; i < 4; i++) {
+      this.addSink(startCol + i + 1, 8, 9, startCol + i + 1, 'F');
+    }
+    
+    // Changing table
+    this.addChangingTable(startCol, 8, 9, startCol);
+    
+    // Women's queue
+    for (let r = 9; r <= 15; r++) {
+      this.addQueueCell(startCol + 3, r, 'F');
+    }
+    this.setEntrance(startCol + 3, 16, 'F');
+    
+    // DIVIDER WALL
+    const dividerCol = startCol + 9;
+    this.drawVerticalWall(dividerCol, 1, 12);
+    
+    // MEN'S SECTION
+    const menStart = dividerCol + 1;
+    
+    // 2 stalls
+    this.addStall(menStart, 2, 'M', 'stall', 3, menStart);
+    this.addStall(menStart + 1, 2, 'M', 'stall', 3, menStart + 1);
+    
+    // 8 urinals in 2 rows
+    for (let i = 0; i < 4; i++) {
+      this.addStall(menStart + i, 5, 'M', 'urinal', 6, menStart + i);
+      this.addStall(menStart + i, 7, 'M', 'urinal', 8, menStart + i);
+    }
+    
+    // Men's sinks (2)
+    this.addSink(menStart, 10, 11, menStart, 'M');
+    this.addSink(menStart + 2, 10, 11, menStart + 2, 'M');
+    
+    // Men's queue
+    for (let r = 11; r <= 15; r++) {
+      this.addQueueCell(menStart + 2, r, 'M');
+    }
+    this.setEntrance(menStart + 2, 16, 'M');
+    
+    this.setExit(dividerCol, 16);
+    this.calculateBoundingBox(1);
   }
 
   /**
    * Layout 4: Mixed Basic
-   * Reverted to the stable Layout 1 design for now
+   * Shared toilets with urinals - all gender-neutral
+   * 10 shared stalls, 10 shared urinals
    */
   buildLayout4_MixedBasic(): void {
-    this.buildLayout1_Basic5050();
+    this.reset();
+    
+    const startCol = 2;
+    
+    // SHARED STALLS (10 in 2 rows)
+    for (let i = 0; i < 5; i++) {
+      this.addStall(startCol + i, 2, 'both', 'stall', 3, startCol + i);
+      this.addStall(startCol + i, 5, 'both', 'stall', 6, startCol + i);
+    }
+    
+    // SHARED URINALS (10 in 2 rows)
+    for (let i = 0; i < 5; i++) {
+      this.addStall(startCol + i + 7, 2, 'both', 'urinal', 3, startCol + i + 7);
+      this.addStall(startCol + i + 7, 5, 'both', 'urinal', 6, startCol + i + 7);
+    }
+    
+    // Shared sinks (4) in center
+    for (let i = 0; i < 4; i++) {
+      this.addSink(startCol + i + 3, 8, 9, startCol + i + 3, 'both');
+    }
+    
+    // Changing table
+    this.addChangingTable(startCol + 7, 8, 9, startCol + 7);
+    
+    // Single shared queue
+    for (let r = 9; r <= 15; r++) {
+      this.addQueueCell(startCol + 5, r, 'shared');
+    }
+    
+    // Single entrance/exit
+    this.setEntrance(startCol + 5, 16);
+    this.setExit(startCol + 6, 16);
+    
+    this.calculateBoundingBox(1);
   }
 
   /**
    * Layout 5: Gender-Neutral
-   * Reverted to the stable Layout 1 design for now
+   * All shared toilet cabins (no urinals)
+   * 20 shared stalls
    */
   buildLayout5_GenderNeutral(): void {
-    this.buildLayout1_Basic5050();
+    this.reset();
+    
+    const startCol = 2;
+    
+    // 20 SHARED STALLS in 4 rows of 5
+    for (let i = 0; i < 5; i++) {
+      this.addStall(startCol + i, 2, 'both', 'stall', 3, startCol + i);
+      this.addStall(startCol + i, 4, 'both', 'stall', 5, startCol + i);
+      this.addStall(startCol + i + 6, 2, 'both', 'stall', 3, startCol + i + 6);
+      this.addStall(startCol + i + 6, 4, 'both', 'stall', 5, startCol + i + 6);
+    }
+    
+    // Shared sinks (4) in center
+    for (let i = 0; i < 4; i++) {
+      this.addSink(startCol + i + 3, 7, 8, startCol + i + 3, 'both');
+    }
+    
+    // Changing table
+    this.addChangingTable(startCol + 7, 7, 8, startCol + 7);
+    
+    // Single shared queue
+    for (let r = 8; r <= 14; r++) {
+      this.addQueueCell(startCol + 5, r, 'shared');
+    }
+    
+    // Single entrance/exit
+    this.setEntrance(startCol + 5, 15);
+    this.setExit(startCol + 6, 15);
+    
+    this.calculateBoundingBox(1);
   }
 
   /**
-   * Layout 6: Mixed Minimal
-   * Reverted to the stable Layout 1 design for now
+   * Layout 6: Minimal Mixed
+   * Shared cabins with urinals
+   * 14 shared stalls, 8 shared urinals
    */
   buildLayout6_MixedMinimal(): void {
-    this.buildLayout1_Basic5050();
+    this.reset();
+    
+    const startCol = 2;
+    
+    // 14 SHARED STALLS in 2 rows of 7
+    for (let i = 0; i < 7; i++) {
+      this.addStall(startCol + i, 2, 'both', 'stall', 3, startCol + i);
+      this.addStall(startCol + i, 5, 'both', 'stall', 6, startCol + i);
+    }
+    
+    // 8 SHARED URINALS in 2 rows of 4
+    for (let i = 0; i < 4; i++) {
+      this.addStall(startCol + i + 8, 2, 'both', 'urinal', 3, startCol + i + 8);
+      this.addStall(startCol + i + 8, 5, 'both', 'urinal', 6, startCol + i + 8);
+    }
+    
+    // Shared sinks (4)
+    for (let i = 0; i < 4; i++) {
+      this.addSink(startCol + i + 3, 8, 9, startCol + i + 3, 'both');
+    }
+    
+    // Changing table
+    this.addChangingTable(startCol + 7, 8, 9, startCol + 7);
+    
+    // Single shared queue
+    for (let r = 9; r <= 15; r++) {
+      this.addQueueCell(startCol + 5, r, 'shared');
+    }
+    
+    // Single entrance/exit
+    this.setEntrance(startCol + 5, 16);
+    this.setExit(startCol + 6, 16);
+    
+    this.calculateBoundingBox(1);
   }
 
   /**
