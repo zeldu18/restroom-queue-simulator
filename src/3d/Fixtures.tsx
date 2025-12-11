@@ -221,6 +221,16 @@ export function Sink({ position, isOccupied, onHover }: SinkProps) {
         <boxGeometry args={[0.7, 0.8, 0.45]} />
         <meshStandardMaterial color="#d4a574" />
       </mesh>
+
+      {/* Occupancy indicator */}
+      <mesh position={[0.4, 2.0, 0.1]}>
+        <sphereGeometry args={[0.03, 16, 16]} />
+        <meshStandardMaterial 
+          color={isOccupied ? '#ff3333' : '#33ff33'} 
+          emissive={isOccupied ? '#ff0000' : '#00ff00'}
+          emissiveIntensity={0.5}
+        />
+      </mesh>
     </group>
   );
 }

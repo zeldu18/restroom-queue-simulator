@@ -143,9 +143,8 @@ export function BathroomScene({ simulation, cellSize = 1 }: BathroomSceneProps) 
     // Process fixtures
     grid.stalls.forEach((stall, idx) => {
       const pos = toWorld(stall.col, stall.row);
-      const isOccupied = simulation.people.some(
-        p => p.id === stall.occupantId && p.state === PersonState.IN_STALL
-      );
+      // Show as occupied if someone has claimed this stall (regardless of state)
+      const isOccupied = stall.occupantId !== null;
 
       if (stall.type === 'urinal') {
         urinals.push(
@@ -172,9 +171,8 @@ export function BathroomScene({ simulation, cellSize = 1 }: BathroomSceneProps) 
 
     grid.sinks.forEach((sink, idx) => {
       const pos = toWorld(sink.col, sink.row);
-      const isOccupied = simulation.people.some(
-        p => p.id === sink.occupantId && p.state === PersonState.AT_SINK
-      );
+      // Show as occupied if someone has claimed this sink
+      const isOccupied = sink.occupantId !== null;
       sinks.push(
         <Sink
           key={`sink-${idx}`}
@@ -186,9 +184,8 @@ export function BathroomScene({ simulation, cellSize = 1 }: BathroomSceneProps) 
 
     grid.changingTables.forEach((table, idx) => {
       const pos = toWorld(table.col, table.row);
-      const isOccupied = simulation.people.some(
-        p => p.id === table.occupantId && p.state === PersonState.AT_CHANGING_TABLE
-      );
+      // Show as occupied if someone has claimed this changing table
+      const isOccupied = table.occupantId !== null;
       changingTables.push(
         <ChangingTable
           key={`changing-${idx}`}
