@@ -6,7 +6,7 @@ import {
 } from 'recharts';
 
 interface LayoutResult {
-  id: number;
+  id: string;
   name: string;
   womenWait: number;
   menWait: number;
