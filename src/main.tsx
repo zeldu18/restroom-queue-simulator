@@ -4,6 +4,7 @@ import './styles.css'
 
 // Always load 2D app immediately
 import AppCA from './App-CA'
+import { ResultsInsights } from './ui/ResultsInsights'
 
 // Lazy load 3D app only when needed (heavy Three.js dependencies)
 const App3D = lazy(() => import('./App-3D'))
@@ -31,13 +32,16 @@ function LoadingScreen() {
 }
 
 function App() {
-  const [mode, setMode] = useState<'2d' | '3d'>(() => {
+  const [mode, setMode] = useState<'2d' | '3d' | 'results'>(() => {
     const params = new URLSearchParams(window.location.search)
     const urlMode = params.get('mode')
     if (urlMode === '3d') return '3d'
+    if (urlMode === 'results') return 'results'
     const stored = localStorage.getItem('simMode')
     // Default to 2d to avoid loading 3D on first visit
-    return stored === '3d' ? '3d' : '2d'
+    if (stored === '3d') return '3d'
+    if (stored === 'results') return 'results'
+    return '2d'
   })
 
   useEffect(() => {
@@ -95,14 +99,42 @@ function App() {
         >
           🏗️ 3D View
         </button>
+        <button
+          onClick={() => setMode('results')}
+          style={{
+            padding: '10px 20px',
+            background: mode === 'results' 
+              ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' 
+              : 'rgba(255,255,255,0.1)',
+            color: 'white',
+            border: mode === 'results' ? '2px solid #fbbf24' : '2px solid rgba(255,255,255,0.2)',
+            borderRadius: '12px',
+            cursor: 'pointer',
+            fontWeight: mode === 'results' ? 700 : 400,
+            fontSize: '0.95rem',
+            backdropFilter: 'blur(10px)',
+            boxShadow: mode === 'results' ? '0 4px 15px rgba(245,158,11,0.4)' : 'none',
+            transition: 'all 0.2s'
+          }}
+        >
+          📊 Results
+        </button>
       </div>
 
-      {mode === '2d' ? (
-        <AppCA />
-      ) : (
+      {mode === '2d' && <AppCA />}
+      {mode === '3d' && (
         <Suspense fallback={<LoadingScreen />}>
           <App3D />
         </Suspense>
+      )}
+      {mode === 'results' && (
+        <div style={{ 
+          minHeight: '100vh', 
+          background: 'linear-gradient(135deg, #f8fafc, #e2e8f0)',
+          paddingTop: '4rem'
+        }}>
+          <ResultsInsights />
+        </div>
       )}
     </>
   )
