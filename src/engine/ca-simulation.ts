@@ -245,6 +245,32 @@ export class CASimulation {
   }
 
   private updatePerson(p: Person): void {
+    // Track stuck status
+    p.updateStuckStatus();
+    
+    // Handle severely stuck people (safety valve)
+    const STUCK_THRESHOLD = 30;  // ~15 seconds at 0.5s/tick
+    const SEVERE_STUCK = 60;     // ~30 seconds - force exit
+    
+    if (p.isStuck(SEVERE_STUCK)) {
+      console.warn(`⚠️ Person ${p.id} (${p.gender}) severely stuck in ${p.state} at (${p.col}, ${p.row}) for ${p.stuckTicks} ticks - forcing exit`);
+      // Release any claimed resources
+      if (p.targetStall && p.targetStall.occupantId === p.id) {
+        p.targetStall.occupantId = null;
+        p.targetStall.occupiedUntil = 0;
+      }
+      if (p.targetSink && p.targetSink.occupantId === p.id) {
+        p.targetSink.occupantId = null;
+        p.targetSink.occupiedUntil = 0;
+      }
+      p.targetStall = null;
+      p.targetSink = null;
+      p.targetQueueIndex = null;
+      p.state = PersonState.EXITING;
+      p.stuckTicks = 0;
+      return;
+    }
+    
     switch (p.state) {
       case PersonState.WALKING_TO_QUEUE:
         this.updateWalkingToQueue(p);
@@ -294,6 +320,7 @@ export class CASimulation {
       p.state = PersonState.WALKING_TO_STALL;
       p.timeEnteredQueue = this.stats.simTimeSeconds;
       p.timeLeftQueue = this.stats.simTimeSeconds; // No wait time
+      p.stuckTicks = 0;  // Reset stuck counter
       return;
     }
     
@@ -306,13 +333,30 @@ export class CASimulation {
     const targetCell = queueCells[p.targetQueueIndex];
     
     if (!targetCell) {
+      console.warn(`No queue cell for person ${p.id} (${p.gender}) at index ${p.targetQueueIndex}`);
       p.state = PersonState.EXITING;
       return;
     }
 
-    this.stepToward(p, targetCell);
+    // If we've been stuck for a while, try a different approach
+    if (p.stuckTicks > 15) {
+      // Try to get any available queue position
+      for (let i = 0; i < queueCells.length; i++) {
+        const altCell = queueCells[i];
+        if (altCell && !this.people.some(other => 
+          other !== p && other.col === altCell.col && other.row === altCell.row && other.state !== PersonState.DONE
+        )) {
+          p.targetQueueIndex = i;
+          p.stuckTicks = 0;
+          console.log(`Person ${p.id} retrying queue position ${i}`);
+          break;
+        }
+      }
+    }
 
-    if (p.isAt(targetCell)) {
+    this.stepToward(p, queueCells[p.targetQueueIndex] || targetCell);
+
+    if (p.isAt(queueCells[p.targetQueueIndex] || targetCell)) {
       p.state = PersonState.IN_QUEUE;
       p.timeEnteredQueue = this.stats.simTimeSeconds;
     }
@@ -512,10 +556,19 @@ export class CASimulation {
       if (freeSink) {
         p.targetSink = freeSink;
         freeSink.occupantId = p.id;
+        p.stuckTicks = 0;  // Reset stuck counter when we get a sink
       } else {
-        // No free sink for this gender - WAIT, don't use other gender's sink!
-        // Stay in this state and try again next tick
-        // (Don't skip to exit - they need to wash hands)
+        // No free sink for this gender
+        // If stuck waiting too long (20 ticks = ~10 seconds), give up and exit
+        if (p.stuckTicks > 20) {
+          console.log(`Person ${p.id} (${p.gender}) giving up on sink after waiting ${p.stuckTicks} ticks`);
+          p.state = PersonState.EXITING;
+          return;
+        }
+        // Keep trying - but move towards exit while waiting
+        if (this.grid.exitCell) {
+          this.stepToward(p, this.grid.exitCell);
+        }
         return;
       }
     }
@@ -618,15 +671,33 @@ export class CASimulation {
         return (p.col === col && p.row === row);
       }
 
-      // Check for other people
-      const occupied = this.people.some(
+      // Check for other people - but be smarter about it
+      const occupant = this.people.find(
         other => other !== p && 
         other.col === col && 
         other.row === row && 
         other.state !== PersonState.DONE
       );
       
-      if (occupied) return false;
+      if (occupant) {
+        // Allow passing through people who are also moving (walking states)
+        // This prevents gridlock where everyone blocks everyone
+        const movingStates: PersonState[] = [
+          PersonState.WALKING_TO_QUEUE,
+          PersonState.WALKING_TO_STALL,
+          PersonState.WALKING_TO_SINK,
+          PersonState.WALKING_TO_CHANGING_TABLE,
+          PersonState.EXITING
+        ];
+        const isMoving = movingStates.includes(occupant.state);
+        
+        // If the occupant is moving and we've been stuck, allow passing
+        if (isMoving && p.stuckTicks > 5) {
+          // Allow passing - they'll sort it out
+        } else {
+          return false;
+        }
+      }
 
       // Don't allow walking to entrance cells of occupied fixtures
       const isOccupiedStallEntrance = this.grid.stalls.some(

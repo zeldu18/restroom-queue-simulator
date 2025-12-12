@@ -46,6 +46,11 @@ export class Person {
   hasUsedChangingTable: boolean;
   needsAccessibleStall: boolean;
   willUseSink: boolean;  // Whether this person will use the sink (men: 50%, women: 100%)
+  
+  // Stuck detection
+  lastCol: number;
+  lastRow: number;
+  stuckTicks: number;  // How many ticks at the same position
 
   constructor(
     id: number,
@@ -92,6 +97,11 @@ export class Person {
     this.hasUsedChangingTable = false;
     this.needsAccessibleStall = this.modifiers.needsAccessibleStall;
     this.willUseSink = willUseSink;
+    
+    // Stuck detection
+    this.lastCol = col;
+    this.lastRow = row;
+    this.stuckTicks = 0;
   }
 
   isAt(cell: Cell): boolean {
@@ -99,8 +109,27 @@ export class Person {
   }
 
   moveTo(col: number, row: number): void {
+    // Track if we actually moved
+    if (this.col !== col || this.row !== row) {
+      this.stuckTicks = 0;  // Reset stuck counter when moving
+    }
+    this.lastCol = this.col;
+    this.lastRow = this.row;
     this.col = col;
     this.row = row;
+  }
+  
+  // Call this each tick to update stuck detection
+  updateStuckStatus(): void {
+    if (this.col === this.lastCol && this.row === this.lastRow) {
+      this.stuckTicks++;
+    }
+    this.lastCol = this.col;
+    this.lastRow = this.row;
+  }
+  
+  isStuck(threshold: number = 20): boolean {
+    return this.stuckTicks >= threshold;
   }
   
   // Get wait time (time in queue)

@@ -473,6 +473,70 @@ export default function App3D() {
           )}
         </div>
 
+        {/* Layout Analysis */}
+        <div style={{ 
+          background: 'linear-gradient(135deg, rgba(16,185,129,0.1), rgba(59,130,246,0.1))',
+          padding: '1rem', 
+          borderRadius: '12px',
+          marginBottom: '1rem',
+          border: '1px solid rgba(16,185,129,0.2)'
+        }}>
+          <h3 style={{ margin: '0 0 0.75rem 0', fontSize: '1rem', color: '#10b981' }}>💡 Layout Analysis</h3>
+          
+          {/* Current layout info */}
+          <div style={{ fontSize: '0.85rem', marginBottom: '0.5rem' }}>
+            <strong style={{ color: '#e2e8f0' }}>{currentLayout?.name || 'Custom Layout'}</strong>
+          </div>
+          
+          {/* Key insight based on configuration */}
+          <div style={{ fontSize: '0.8rem', color: '#9ca3af', marginBottom: '0.5rem' }}>
+            {(() => {
+              const ratio = counts.womenStalls / Math.max(1, counts.menStalls + counts.urinals);
+              if (counts.sharedStalls > 0) {
+                return '⚥ Gender-neutral design promotes flexibility and equal access';
+              }
+              if (ratio > 2) {
+                return '♀ More women\'s facilities - addresses longer average visit times';
+              }
+              if (ratio < 0.5) {
+                return '♂ More men\'s facilities - may cause longer women\'s wait times';
+              }
+              return '⚖️ Balanced allocation - traditional 50/50 split';
+            })()}
+          </div>
+          
+          {/* Recommendation based on current performance */}
+          {!isWarmup && simulation.stats.servedCount >= 10 && (
+            <div style={{ 
+              marginTop: '0.5rem', 
+              padding: '0.5rem', 
+              background: 'rgba(0,0,0,0.2)', 
+              borderRadius: '6px',
+              fontSize: '0.75rem'
+            }}>
+              {(() => {
+                const femaleTime = simulation.getFemaleAverageTime();
+                const maleTime = simulation.getMaleAverageTime();
+                const gap = femaleTime - maleTime;
+                
+                if (Math.abs(gap) < 10) {
+                  return <span style={{ color: '#10b981' }}>✅ Good equity! Wait times are roughly equal.</span>;
+                }
+                if (gap > 30) {
+                  return <span style={{ color: '#f59e0b' }}>⚠️ Try Layout 2 or 3 for better women's wait times</span>;
+                }
+                if (gap > 10) {
+                  return <span style={{ color: '#fbbf24' }}>💡 Consider adding more women's stalls</span>;
+                }
+                if (gap < -20) {
+                  return <span style={{ color: '#60a5fa' }}>ℹ️ Men waiting longer - unusual, check if urinals are being used</span>;
+                }
+                return <span style={{ color: '#9ca3af' }}>📊 Continue observing to gather more data</span>;
+              })()}
+            </div>
+          )}
+        </div>
+
         {/* Compact Fixtures */}
         <div style={{ 
           background: 'rgba(255,255,255,0.05)', 
