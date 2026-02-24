@@ -43,7 +43,7 @@ export default function CACanvas({ simulation, cellSize, onCellClick, customMode
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Create tile pattern once
+    // Create tile pattern once - dark modern aesthetic
     if (!tilePattern) {
       const tileSize = 16;
       const patternCanvas = document.createElement('canvas');
@@ -51,14 +51,14 @@ export default function CACanvas({ simulation, cellSize, onCellClick, customMode
       patternCanvas.height = tileSize * 2;
       const patternCtx = patternCanvas.getContext('2d');
       if (patternCtx) {
-        // Create checkerboard tile pattern
-        patternCtx.fillStyle = '#e8e4e0';
+        // Create dark checkerboard tile pattern
+        patternCtx.fillStyle = '#1a1a2e';
         patternCtx.fillRect(0, 0, tileSize * 2, tileSize * 2);
-        patternCtx.fillStyle = '#d8d4d0';
+        patternCtx.fillStyle = '#16162a';
         patternCtx.fillRect(0, 0, tileSize, tileSize);
         patternCtx.fillRect(tileSize, tileSize, tileSize, tileSize);
-        // Add grout lines
-        patternCtx.strokeStyle = '#c0b8b0';
+        // Add subtle grout lines
+        patternCtx.strokeStyle = '#2a2a4a';
         patternCtx.lineWidth = 1;
         patternCtx.strokeRect(0, 0, tileSize, tileSize);
         patternCtx.strokeRect(tileSize, 0, tileSize, tileSize);
@@ -90,12 +90,18 @@ export default function CACanvas({ simulation, cellSize, onCellClick, customMode
           ctx.fillRect(c * cellSize, r * cellSize, cellSize, cellSize);
           }
           
-          // Add subtle highlight to queue cells
+          // Add glowing highlight to queue cells
           if (cellType === CellType.QUEUE_W || cellType === CellType.QUEUE_M || cellType === CellType.QUEUE_SHARED) {
-            ctx.fillStyle = 'rgba(100, 100, 255, 0.08)';
+            // Add subtle glow effect
+            const glowColor = cellType === CellType.QUEUE_W 
+              ? 'rgba(219, 39, 119, 0.15)' 
+              : cellType === CellType.QUEUE_M 
+                ? 'rgba(59, 130, 246, 0.15)'
+                : 'rgba(16, 185, 129, 0.15)';
+            ctx.fillStyle = glowColor;
             ctx.fillRect(c * cellSize, r * cellSize, cellSize, cellSize);
             
-            // Draw queue number
+            // Draw queue number with better visibility
             const queueCells = cellType === CellType.QUEUE_W 
               ? simulation.grid.queueCellsWomen 
               : cellType === CellType.QUEUE_M 
@@ -103,8 +109,8 @@ export default function CACanvas({ simulation, cellSize, onCellClick, customMode
                 : simulation.grid.queueCellsShared;
             const idx = queueCells.findIndex(q => q.col === c && q.row === r);
             if (idx >= 0) {
-              ctx.font = `${Math.floor(cellSize * 0.3)}px Arial`;
-              ctx.fillStyle = 'rgba(0,0,0,0.2)';
+              ctx.font = `bold ${Math.floor(cellSize * 0.35)}px system-ui`;
+              ctx.fillStyle = 'rgba(255,255,255,0.25)';
               ctx.textAlign = 'center';
               ctx.textBaseline = 'middle';
               ctx.fillText(`${idx + 1}`, c * cellSize + cellSize / 2, r * cellSize + cellSize / 2);
@@ -120,8 +126,8 @@ export default function CACanvas({ simulation, cellSize, onCellClick, customMode
           // Draw occupancy indicators
           drawOccupancyIndicator(ctx, simulation, c, r, cellSize);
           
-          // Grid lines (subtle)
-          ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+          // Grid lines (subtle dark theme)
+          ctx.strokeStyle = 'rgba(99,102,241,0.08)';
           ctx.lineWidth = 0.5;
           ctx.strokeRect(c * cellSize, r * cellSize, cellSize, cellSize);
         }
@@ -166,11 +172,11 @@ export default function CACanvas({ simulation, cellSize, onCellClick, customMode
       height={height}
       onClick={handleCanvasClick}
       style={{
-        border: '3px solid #4a4a4a',
-        borderRadius: '8px',
-        background: '#ffffff',
+        border: '2px solid #3b3b5c',
+        borderRadius: '12px',
+        background: '#0e0e1a',
         display: 'block',
-        boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.4), 0 0 60px rgba(99,102,241,0.1)',
         cursor: customMode ? 'crosshair' : 'default',
       }}
     />
@@ -200,20 +206,23 @@ function drawPerson(
     radius = cellSize * 0.38;
   }
 
-  // Draw shadow for depth
-  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  // Draw shadow for depth (darker for dark theme)
+  ctx.fillStyle = 'rgba(0,0,0,0.4)';
   ctx.beginPath();
   ctx.ellipse(x, y + cellSize * 0.4, radius * 0.8, radius * 0.3, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  // Main circle with bobbing
+  // Main circle with bobbing and glow effect
+  ctx.shadowColor = baseColor;
+  ctx.shadowBlur = 8;
   ctx.fillStyle = baseColor;
   ctx.beginPath();
   ctx.arc(x, y + bobOffset, radius, 0, Math.PI * 2);
   ctx.fill();
+  ctx.shadowBlur = 0;
 
-  // White border for visibility
-  ctx.strokeStyle = '#ffffff';
+  // Dark border for contrast
+  ctx.strokeStyle = 'rgba(0,0,0,0.5)';
   ctx.lineWidth = 2;
   ctx.stroke();
 
@@ -320,13 +329,13 @@ function drawEntranceMarkers(
     const x = col * cellSize;
     const y = row * cellSize;
     
-    // Draw very subtle chevron/arrow pointing to fixture
-    ctx.strokeStyle = 'rgba(0, 150, 0, 0.2)';
-    ctx.lineWidth = 1.5;
+    // Draw glowing chevron/arrow pointing to fixture
+    ctx.strokeStyle = 'rgba(16, 185, 129, 0.4)';
+    ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(x + cellSize * 0.35, y + cellSize * 0.55);
-    ctx.lineTo(x + cellSize * 0.5, y + cellSize * 0.4);
-    ctx.lineTo(x + cellSize * 0.65, y + cellSize * 0.55);
+    ctx.moveTo(x + cellSize * 0.3, y + cellSize * 0.55);
+    ctx.lineTo(x + cellSize * 0.5, y + cellSize * 0.35);
+    ctx.lineTo(x + cellSize * 0.7, y + cellSize * 0.55);
     ctx.stroke();
   }
 }
@@ -345,18 +354,23 @@ function drawFixtureDetails(
     case CellType.W_STALL:
     case CellType.M_STALL:
     case CellType.SHARED_STALL:
-      // Draw stall door
-      ctx.strokeStyle = '#555';
+      // Draw stall with rounded corners and glow
+      ctx.strokeStyle = cellType === CellType.W_STALL ? '#f472b6' : cellType === CellType.M_STALL ? '#60a5fa' : '#34d399';
       ctx.lineWidth = 2;
-      ctx.strokeRect(x + 2, y + 2, cellSize - 4, cellSize - 4);
+      const radius = 4;
+      ctx.beginPath();
+      ctx.roundRect(x + 3, y + 3, cellSize - 6, cellSize - 6, radius);
+      ctx.stroke();
       
-      // Draw door handle
-      ctx.fillStyle = '#888';
-      ctx.fillRect(x + cellSize * 0.7, y + cellSize / 2 - 2, 4, 4);
+      // Draw door handle with metallic look
+      ctx.fillStyle = '#a5a5c0';
+      ctx.beginPath();
+      ctx.arc(x + cellSize * 0.75, y + cellSize / 2, 3, 0, Math.PI * 2);
+      ctx.fill();
       
-      // Gender icon
-      ctx.font = `${Math.floor(cellSize * 0.4)}px Arial`;
-      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+      // Gender icon with glow
+      ctx.font = `bold ${Math.floor(cellSize * 0.45)}px system-ui`;
+      ctx.fillStyle = cellType === CellType.W_STALL ? 'rgba(244,114,182,0.6)' : cellType === CellType.M_STALL ? 'rgba(96,165,250,0.6)' : 'rgba(52,211,153,0.6)';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       if (cellType === CellType.W_STALL) {
@@ -369,74 +383,101 @@ function drawFixtureDetails(
       break;
 
     case CellType.URINAL:
-      // Draw urinal shape (vertical oval)
-      ctx.fillStyle = '#ffffff';
+      // Draw urinal with modern look
+      ctx.fillStyle = '#2a2a4a';
       ctx.beginPath();
       ctx.ellipse(
         x + cellSize / 2,
         y + cellSize / 2,
-        cellSize * 0.25,
-        cellSize * 0.35,
+        cellSize * 0.28,
+        cellSize * 0.38,
         0,
         0,
         Math.PI * 2
       );
       ctx.fill();
-      ctx.strokeStyle = '#333';
+      ctx.strokeStyle = '#60a5fa';
       ctx.lineWidth = 2;
       ctx.stroke();
+      // Inner highlight
+      ctx.fillStyle = 'rgba(96,165,250,0.2)';
+      ctx.beginPath();
+      ctx.ellipse(
+        x + cellSize / 2,
+        y + cellSize / 2 - 2,
+        cellSize * 0.15,
+        cellSize * 0.22,
+        0,
+        0,
+        Math.PI * 2
+      );
+      ctx.fill();
       break;
 
     case CellType.SINK:
-      // Draw sink (circle basin)
-      ctx.fillStyle = '#ffffff';
+      // Draw sink with modern style
+      ctx.fillStyle = '#2a2a4a';
       ctx.beginPath();
-      ctx.arc(x + cellSize / 2, y + cellSize / 2, cellSize * 0.3, 0, Math.PI * 2);
+      ctx.arc(x + cellSize / 2, y + cellSize / 2, cellSize * 0.32, 0, Math.PI * 2);
       ctx.fill();
-      ctx.strokeStyle = '#333';
+      ctx.strokeStyle = '#a78bfa';
       ctx.lineWidth = 2;
       ctx.stroke();
       
       // Draw faucet
-      ctx.fillStyle = '#c0c0c0';
-      ctx.fillRect(x + cellSize / 2 - 3, y + cellSize * 0.15, 6, cellSize * 0.15);
+      ctx.fillStyle = '#6366f1';
+      ctx.beginPath();
+      ctx.roundRect(x + cellSize / 2 - 4, y + cellSize * 0.12, 8, cellSize * 0.18, 2);
+      ctx.fill();
       break;
       
     case CellType.CHANGING_TABLE:
-      // Draw changing table
-      ctx.fillStyle = '#fffde7';
-      ctx.fillRect(x + 4, y + 4, cellSize - 8, cellSize - 8);
-      ctx.strokeStyle = '#fbc02d';
+      // Draw changing table with warm glow
+      ctx.fillStyle = '#3d3720';
+      ctx.beginPath();
+      ctx.roundRect(x + 4, y + 4, cellSize - 8, cellSize - 8, 4);
+      ctx.fill();
+      ctx.strokeStyle = '#fbbf24';
       ctx.lineWidth = 2;
-      ctx.strokeRect(x + 4, y + 4, cellSize - 8, cellSize - 8);
+      ctx.stroke();
       // Baby icon
       ctx.font = `${Math.floor(cellSize * 0.4)}px Arial`;
-      ctx.fillStyle = '#ff9800';
+      ctx.fillStyle = '#fbbf24';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText('👶', x + cellSize / 2, y + cellSize / 2);
       break;
 
     case CellType.ENTRANCE:
-      // Draw arrow pointing in
-      ctx.fillStyle = '#2e7d32';
+      // Draw entrance with glow arrow
+      ctx.fillStyle = '#10b981';
       ctx.beginPath();
-      ctx.moveTo(x + cellSize / 2, y + cellSize * 0.3);
-      ctx.lineTo(x + cellSize * 0.7, y + cellSize * 0.6);
-      ctx.lineTo(x + cellSize * 0.3, y + cellSize * 0.6);
+      ctx.moveTo(x + cellSize / 2, y + cellSize * 0.25);
+      ctx.lineTo(x + cellSize * 0.75, y + cellSize * 0.6);
+      ctx.lineTo(x + cellSize * 0.25, y + cellSize * 0.6);
       ctx.closePath();
       ctx.fill();
+      // Add glow
+      ctx.shadowColor = '#10b981';
+      ctx.shadowBlur = 8;
+      ctx.fill();
+      ctx.shadowBlur = 0;
       break;
 
     case CellType.EXIT:
-      // Draw arrow pointing out
-      ctx.fillStyle = '#d84315';
+      // Draw exit with warm glow arrow
+      ctx.fillStyle = '#f59e0b';
       ctx.beginPath();
-      ctx.moveTo(x + cellSize / 2, y + cellSize * 0.7);
-      ctx.lineTo(x + cellSize * 0.7, y + cellSize * 0.4);
-      ctx.lineTo(x + cellSize * 0.3, y + cellSize * 0.4);
+      ctx.moveTo(x + cellSize / 2, y + cellSize * 0.75);
+      ctx.lineTo(x + cellSize * 0.75, y + cellSize * 0.4);
+      ctx.lineTo(x + cellSize * 0.25, y + cellSize * 0.4);
       ctx.closePath();
       ctx.fill();
+      // Add glow
+      ctx.shadowColor = '#f59e0b';
+      ctx.shadowBlur = 8;
+      ctx.fill();
+      ctx.shadowBlur = 0;
       break;
   }
 }
@@ -479,26 +520,21 @@ function drawOccupancyIndicator(
     flashAlpha = 0.5 + flashCycle * 0.5;
   }
 
-  // Draw indicator light in top-right corner
+  // Draw indicator light in top-right corner with glow
   ctx.globalAlpha = flashAlpha;
-  ctx.fillStyle = isOccupied ? '#ff3333' : '#33ff33';
+  ctx.shadowColor = isOccupied ? '#ef4444' : '#10b981';
+  ctx.shadowBlur = 6;
+  ctx.fillStyle = isOccupied ? '#ef4444' : '#10b981';
   ctx.beginPath();
   ctx.arc(x + cellSize - 6, y + 6, 4, 0, Math.PI * 2);
   ctx.fill();
+  ctx.shadowBlur = 0;
   
-  // White border
-  ctx.strokeStyle = '#ffffff';
+  // Dark border for contrast
+  ctx.strokeStyle = '#1a1a2e';
   ctx.lineWidth = 1.5;
   ctx.stroke();
   ctx.globalAlpha = 1.0;
-
-  // Add "OCCUPIED" or "VACANT" text
-  ctx.font = `bold ${Math.floor(cellSize * 0.22)}px Arial`;
-  ctx.fillStyle = isOccupied ? '#cc0000' : '#00aa00';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'top';
-  const text = isOccupied ? 'OCC' : 'VAC';
-  ctx.fillText(text, x + cellSize / 2, y + 2);
 
   // Draw progress bar if occupied
   if (isOccupied && person) {
@@ -525,36 +561,40 @@ function drawOccupancyIndicator(
     const barY = y + cellSize - barHeight - 2;
 
     // Background
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
-    ctx.fillRect(barX, barY, barWidth, barHeight);
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+    ctx.beginPath();
+    ctx.roundRect(barX, barY, barWidth, barHeight, 2);
+    ctx.fill();
 
-    // Progress
-    ctx.fillStyle = progress < 0.8 ? '#fbbf24' : '#10b981';
-    ctx.fillRect(barX, barY, barWidth * progress, barHeight);
+    // Progress with gradient effect
+    ctx.fillStyle = progress < 0.8 ? '#f59e0b' : '#10b981';
+    ctx.beginPath();
+    ctx.roundRect(barX, barY, barWidth * progress, barHeight, 2);
+    ctx.fill();
   }
 }
 
 function getStateColor(state: string): string {
   switch (state) {
     case PersonState.WALKING_TO_QUEUE:
-      return '#ffeb3b';
+      return '#fbbf24';
     case PersonState.IN_QUEUE:
-      return '#ff9800';
+      return '#f59e0b';
     case PersonState.WALKING_TO_STALL:
-      return '#4caf50';
+      return '#10b981';
     case PersonState.IN_STALL:
-      return '#f44336';
+      return '#ef4444';
     case PersonState.WALKING_TO_CHANGING_TABLE:
-      return '#ffeb3b';
+      return '#fbbf24';
     case PersonState.AT_CHANGING_TABLE:
-      return '#ff9800';
+      return '#f59e0b';
     case PersonState.WALKING_TO_SINK:
-      return '#00bcd4';
+      return '#06b6d4';
     case PersonState.AT_SINK:
-      return '#9c27b0';
+      return '#a855f7';
     case PersonState.EXITING:
-      return '#607d8b';
+      return '#6b7280';
     default:
-      return '#000000';
+      return '#1e1e2e';
   }
 }

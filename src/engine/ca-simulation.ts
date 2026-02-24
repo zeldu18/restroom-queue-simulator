@@ -160,11 +160,20 @@ export class CASimulation {
       entranceCell = this.grid.entranceCell;
     }
 
-    const entranceInfo = entranceCell ? `at (${entranceCell.col}, ${entranceCell.row})` : 'NO ENTRANCE';
-    console.log(`Spawning ${gender}: ${entranceInfo}, W@(${this.grid.entranceWomen?.col},${this.grid.entranceWomen?.row}), M@(${this.grid.entranceMen?.col},${this.grid.entranceMen?.row})`);
-
     if (!entranceCell) {
       console.warn(`No entrance found for ${gender}!`);
+      return;
+    }
+    
+    // Check if entrance is blocked - don't spawn if someone is already there
+    const entranceBlocked = this.people.some(p => 
+      p.col === entranceCell!.col && 
+      p.row === entranceCell!.row && 
+      p.state !== PersonState.DONE
+    );
+    
+    if (entranceBlocked) {
+      // Skip this spawn - entrance is blocked
       return;
     }
     
@@ -191,26 +200,9 @@ export class CASimulation {
   }
   
   private selectCharacterType(gender: Gender): CharacterType {
-    const freq = this.config.characterFrequencies;
-    const rand = Math.random();
-    
-    let cumulative = 0;
-    
-    // Pregnant only applies to women
-    if (gender === 'F') {
-      cumulative += freq.pregnant;
-      if (rand < cumulative) return CharacterType.PREGNANT;
-    }
-    
-    cumulative += freq.parentWithChild;
-    if (rand < cumulative) return CharacterType.PARENT_WITH_CHILD;
-    
-    cumulative += freq.elderly;
-    if (rand < cumulative) return CharacterType.ELDERLY;
-    
-    cumulative += freq.wheelchair;
-    if (rand < cumulative) return CharacterType.WHEELCHAIR;
-    
+    // Temporary simplified behavior: force regular agents only while
+    // debugging core queue/path logic.
+    void gender;
     return CharacterType.REGULAR;
   }
   
@@ -303,30 +295,15 @@ export class CASimulation {
   }
 
   private updateWalkingToQueue(p: Person): void {
-    // FIRST: Try to get a stall directly if one is available!
-    // Only queue if all stalls are occupied.
-    const freeStall = this.findAvailableStall(p);
-    if (freeStall) {
-      // Go directly to stall - skip the queue!
-      freeStall.occupantId = p.id;
-      
-      // If using urinal, adjust dwell time
-      if (freeStall.type === 'urinal' && p.gender === 'M') {
-        const times = this.config.serviceTimes;
-        p.dwellTime = this.randFloat(times.male.urinalMin, times.male.urinalMax);
-      }
-      
-      p.targetStall = freeStall;
-      p.state = PersonState.WALKING_TO_STALL;
-      p.timeEnteredQueue = this.stats.simTimeSeconds;
-      p.timeLeftQueue = this.stats.simTimeSeconds; // No wait time
-      p.stuckTicks = 0;  // Reset stuck counter
-      return;
-    }
-    
-    // No stall available - go to queue
+    // Strict FIFO: everyone joins queue first; only front can claim a fixture.
     if (p.targetQueueIndex === null) {
-      p.targetQueueIndex = this.getNextQueuePositionIndex(p.gender);
+      const nextQueueIndex = this.getNextQueuePositionIndex(p.gender);
+      if (nextQueueIndex === null) {
+        // Queue is full; this entrant bails instead of deadlocking at entrance.
+        p.state = PersonState.EXITING;
+        return;
+      }
+      p.targetQueueIndex = nextQueueIndex;
     }
 
     const queueCells = this.getQueueCellsForGender(p.gender);
@@ -371,27 +348,51 @@ export class CASimulation {
       p.moveTo(myCell.col, myCell.row);
     }
 
-    // Anyone in queue can try to get a stall (not just index 0)
-    // This prevents deadlocks where front person can't reach stall
+    // Only the person at the FRONT of the queue (index 0) can try to get a stall
+    // This ensures proper FIFO ordering
+    if (p.targetQueueIndex !== 0) {
+      return; // Not at front, wait your turn
+    }
+
     const freeStall = this.findAvailableStall(p);
     if (freeStall) {
-      // Reserve the stall
-      freeStall.occupantId = p.id;
-      
       // If using urinal, adjust dwell time
       if (freeStall.type === 'urinal' && p.gender === 'M') {
         const times = this.config.serviceTimes;
         p.dwellTime = this.randFloat(times.male.urinalMin, times.male.urinalMax);
       }
       
-      // Release from queue
+      // Release from queue and shift everyone forward
       p.targetStall = freeStall;
       p.state = PersonState.WALKING_TO_STALL;
       p.timeLeftQueue = this.stats.simTimeSeconds;
-      
-      // Clear queue position (others will compact)
+
+      // Advance the queue immediately for people already standing in line.
+      this.popFromQueue(p.gender);
+
+      // Clear queue position
       p.targetQueueIndex = null;
     }
+  }
+  
+  /**
+   * Shift everyone in queue forward by one position when front person leaves
+   */
+  private shiftQueueForward(gender: Gender): void {
+    this.people.forEach(p => {
+      if (
+        p.gender === gender &&
+        p.state !== PersonState.DONE &&
+        // Only people already standing in the queue move forward.
+        // Do NOT shift walking agents, or they can get assigned unreachable
+        // slots ahead of occupied cells and freeze near the entrance.
+        p.state === PersonState.IN_QUEUE &&
+        p.targetQueueIndex !== null &&
+        p.targetQueueIndex > 0
+      ) {
+        p.targetQueueIndex -= 1;
+      }
+    });
   }
 
   private findAvailableStall(p: Person): Stall | null {
@@ -399,9 +400,7 @@ export class CASimulation {
     const availableStalls = this.grid.stalls.filter(s => 
       s.occupiedUntil <= this.stats.simTimeSeconds && 
       s.occupantId === null &&
-      (s.genderAllowed === p.gender || s.genderAllowed === 'both') &&
-      // Wheelchair users need accessible stalls
-      (!p.needsAccessibleStall || s.isAccessible)
+      (s.genderAllowed === p.gender || s.genderAllowed === 'both')
     );
 
     if (availableStalls.length === 0) return null;
@@ -410,7 +409,7 @@ export class CASimulation {
     if (p.gender === 'M' && Math.random() < this.config.pMaleUrinal) {
       const urinals = availableStalls.filter(s => s.type === 'urinal');
       if (urinals.length > 0) {
-        return urinals[0];
+        return this.pickRandomStall(urinals);
       }
     }
 
@@ -418,16 +417,50 @@ export class CASimulation {
     // This fixes the issue where men who don't want urinals still get assigned to them
     const nonUrinals = availableStalls.filter(s => s.type !== 'urinal');
     if (nonUrinals.length > 0) {
-      return nonUrinals[0];
+      return this.pickRandomStall(nonUrinals);
     }
 
     // Fallback to any available fixture (urinal) if no stalls available
-    return availableStalls[0];
+    return this.pickRandomStall(availableStalls);
+  }
+
+  private pickRandomStall(stalls: Stall[]): Stall {
+    const idx = Math.floor(Math.random() * stalls.length);
+    return stalls[idx]!;
   }
 
   private updateWalkingToStall(p: Person): void {
     if (!p.targetStall) {
-      p.state = PersonState.WALKING_TO_SINK;
+      // Lost target; rejoin queue instead of skipping fixture stage.
+      p.state = PersonState.WALKING_TO_QUEUE;
+      return;
+    }
+
+    // If target is no longer available, rejoin queue.
+    const targetTakenByOther =
+      p.targetStall.occupantId !== null && p.targetStall.occupantId !== p.id;
+    const targetBusy =
+      p.targetStall.occupiedUntil > this.stats.simTimeSeconds &&
+      p.targetStall.occupantId !== p.id;
+    if (targetTakenByOther || targetBusy) {
+      p.targetStall = null;
+      p.targetQueueIndex = null;
+      p.state = PersonState.WALKING_TO_QUEUE;
+      p.stuckTicks = 0;
+      return;
+    }
+
+    // If pathing to the reserved stall keeps failing, release the reservation
+    // and rejoin the queue to avoid hard-locking the entrance flow.
+    if (p.stuckTicks > 12) {
+      if (p.targetStall.occupantId === p.id) {
+        p.targetStall.occupantId = null;
+        p.targetStall.occupiedUntil = 0;
+      }
+      p.targetStall = null;
+      p.targetQueueIndex = null;
+      p.state = PersonState.WALKING_TO_QUEUE;
+      p.stuckTicks = 0;
       return;
     }
 
@@ -439,6 +472,24 @@ export class CASimulation {
     this.stepToward(p, entranceCell);
 
     if (p.col === entranceCell.col && p.row === entranceCell.row) {
+      // Claim fixture only at entrance arrival (no early reservation).
+      if (
+        p.targetStall.occupantId !== null &&
+        p.targetStall.occupantId !== p.id
+      ) {
+        p.targetStall = null;
+        p.targetQueueIndex = null;
+        p.state = PersonState.WALKING_TO_QUEUE;
+        return;
+      }
+      if (p.targetStall.occupiedUntil > this.stats.simTimeSeconds) {
+        p.targetStall = null;
+        p.targetQueueIndex = null;
+        p.state = PersonState.WALKING_TO_QUEUE;
+        return;
+      }
+
+      p.targetStall.occupantId = p.id;
       p.moveTo(p.targetStall.col, p.targetStall.row);
       
       if (p.targetStall.occupantId === p.id) {
@@ -737,33 +788,25 @@ export class CASimulation {
     return cells;
   }
 
-  private getNextQueuePositionIndex(gender: Gender): number {
+  private getNextQueuePositionIndex(gender: Gender): number | null {
     const queueCells = this.getQueueCellsForGender(gender);
-    const occupiedIndices = new Set<number>();
-    
-    // Collect all occupied queue indices for this gender
+    let queueCount = 0;
+
+    // Keep queue contiguous from front (0..n-1); new entrant gets back index n.
     this.people.forEach(p => {
       if (
         p.gender === gender &&
         p.state !== PersonState.DONE &&
+        (p.state === PersonState.IN_QUEUE || p.state === PersonState.WALKING_TO_QUEUE) &&
         p.targetQueueIndex !== null &&
         p.targetQueueIndex >= 0
       ) {
-        occupiedIndices.add(p.targetQueueIndex);
+        queueCount++;
       }
     });
 
-    // Find FIRST free slot from the FRONT of the queue
-    // Index 0 = front (next to be served), higher indices = further back
-    // New arrivals go to the BACK (first available from front)
-    for (let i = 0; i < queueCells.length; i++) {
-      if (!occupiedIndices.has(i)) {
-        return i;
-      }
-    }
-
-    // Queue is full, assign to the back
-    return queueCells.length - 1;
+    if (queueCount >= queueCells.length) return null;
+    return queueCount;
   }
 
   /**
@@ -800,34 +843,37 @@ export class CASimulation {
   private maintainQueueOrder(gender: Gender): void {
     const queueCells = this.getQueueCellsForGender(gender);
     if (queueCells.length === 0) return;
-
-    // Build map of which indices are claimed by people IN_QUEUE
-    const occupiedByIndex = new Map<number, Person>();
-    
-    // First pass: find all IN_QUEUE people and their claimed indices
-    this.people.forEach(p => {
-      if (
+    // Deterministically compact all active queue participants to 0..n-1.
+    // This prevents holes that can deadlock the queue head.
+    const queuePeople = this.people
+      .filter(p =>
         p.gender === gender &&
-        p.state === PersonState.IN_QUEUE &&
+        p.state !== PersonState.DONE &&
+        (p.state === PersonState.IN_QUEUE || p.state === PersonState.WALKING_TO_QUEUE) &&
         p.targetQueueIndex !== null &&
         p.targetQueueIndex >= 0
-      ) {
-        const existing = occupiedByIndex.get(p.targetQueueIndex);
-        if (!existing) {
-          occupiedByIndex.set(p.targetQueueIndex, p);
-        } else {
-          // Conflict! Two people at same index. Move the newer one back.
-          // Find next free slot for the conflict loser
-          for (let newIdx = p.targetQueueIndex + 1; newIdx < queueCells.length; newIdx++) {
-            if (!occupiedByIndex.has(newIdx)) {
-              p.targetQueueIndex = newIdx;
-              occupiedByIndex.set(newIdx, p);
-              break;
-            }
-          }
+      )
+      .sort((a, b) => {
+        const aIdx = a.targetQueueIndex ?? Number.MAX_SAFE_INTEGER;
+        const bIdx = b.targetQueueIndex ?? Number.MAX_SAFE_INTEGER;
+        if (aIdx !== bIdx) return aIdx - bIdx;
+        if (a.timeEnteredSystem !== b.timeEnteredSystem) {
+          return a.timeEnteredSystem - b.timeEnteredSystem;
         }
+        return a.id - b.id;
+      });
+
+    for (let i = 0; i < queuePeople.length; i++) {
+      const qp = queuePeople[i];
+      if (!qp) continue;
+
+      if (i < queueCells.length) {
+        qp.targetQueueIndex = i;
+      } else {
+        qp.targetQueueIndex = null;
+        qp.state = PersonState.EXITING;
       }
-    });
+    }
   }
   
   private updateQueueStats(): void {

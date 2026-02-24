@@ -18,20 +18,21 @@ export const CellType = {
 
 export type CellType = typeof CellType[keyof typeof CellType];
 
+// Dark modern color palette matching 3D view aesthetic
 export const CELL_COLORS: Record<CellType, string> = {
-  [CellType.EMPTY]: "#e8e4e0",           // Warm tile color
-  [CellType.WALL]: "#4a4a4a",            // Dark grey walls
-  [CellType.W_STALL]: "#f8bbd9",         // Pink for women's stalls
-  [CellType.M_STALL]: "#90caf9",         // Light blue for men's stalls
-  [CellType.URINAL]: "#42a5f5",          // Darker blue for urinals
-  [CellType.SINK]: "#b39ddb",            // Purple for sinks
-  [CellType.QUEUE_W]: "#fce4ec",         // Light pink queue
-  [CellType.QUEUE_M]: "#e3f2fd",         // Light blue queue
-  [CellType.QUEUE_SHARED]: "#e0f2f1",    // Teal for shared queue
-  [CellType.ENTRANCE]: "#a5d6a7",        // Green entrance
-  [CellType.EXIT]: "#ffcc80",            // Orange exit
-  [CellType.CHANGING_TABLE]: "#fff59d",  // Yellow for changing table
-  [CellType.SHARED_STALL]: "#c5e1a5",    // Light green for gender-neutral
+  [CellType.EMPTY]: "#1e1e2e",           // Dark slate background
+  [CellType.WALL]: "#2d2d44",            // Slightly lighter walls
+  [CellType.W_STALL]: "#db2777",         // Vibrant pink for women's stalls
+  [CellType.M_STALL]: "#3b82f6",         // Bright blue for men's stalls
+  [CellType.URINAL]: "#60a5fa",          // Lighter blue for urinals
+  [CellType.SINK]: "#8b5cf6",            // Purple for sinks
+  [CellType.QUEUE_W]: "#4c1d3d",         // Dark pink queue
+  [CellType.QUEUE_M]: "#1e3a5f",         // Dark blue queue
+  [CellType.QUEUE_SHARED]: "#164e63",    // Dark teal for shared queue
+  [CellType.ENTRANCE]: "#059669",        // Emerald entrance
+  [CellType.EXIT]: "#d97706",            // Amber exit
+  [CellType.CHANGING_TABLE]: "#ca8a04",  // Gold for changing table
+  [CellType.SHARED_STALL]: "#10b981",    // Emerald for gender-neutral
 };
 
 export type Gender = "F" | "M";
@@ -57,11 +58,12 @@ export interface CharacterFrequencies {
 }
 
 export const DEFAULT_CHARACTER_FREQUENCIES: CharacterFrequencies = {
-  regular: 0.86,
-  pregnant: 0.03,      // Only for women
-  parentWithChild: 0.04,
-  elderly: 0.05,
-  wheelchair: 0.02,
+  // Simplified mode: disable special behavior until core queue logic is stable.
+  regular: 1.0,
+  pregnant: 0.0,
+  parentWithChild: 0.0,
+  elderly: 0.0,
+  wheelchair: 0.0,
 };
 
 // Service time modifiers by character type
@@ -277,8 +279,9 @@ export const DEFAULT_CA_CONFIG: CAConfig = {
   arrivalRatePerMin: 12,
   serviceTimes: DEFAULT_SERVICE_TIMES,
   genderMix: { female: 0.5, male: 0.5 },
+  // Keep simple agent behavior, but preserve realistic male fixture routing.
   pMaleUrinal: 0.85,
-  pMaleUseSink: 0.5,  // 50% of men use sink
+  pMaleUseSink: 1.0,
   characterFrequencies: DEFAULT_CHARACTER_FREQUENCIES,
   areaConfig: DEFAULT_AREA_CONFIG,
   warmupSeconds: 120,

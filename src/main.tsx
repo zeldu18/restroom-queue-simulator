@@ -5,6 +5,8 @@ import './styles.css'
 // Always load 2D app immediately
 import AppCA from './App-CA'
 import { ResultsInsights } from './ui/ResultsInsights'
+import BatchAnalysis from './ui/BatchAnalysis'
+import { GlobalIntro } from './ui/GlobalIntro'
 
 // Lazy load 3D app only when needed (heavy Three.js dependencies)
 const App3D = lazy(() => import('./App-3D'))
@@ -32,14 +34,17 @@ function LoadingScreen() {
 }
 
 function App() {
-  const [mode, setMode] = useState<'2d' | '3d' | 'results'>(() => {
+  const [showIntro, setShowIntro] = useState(() => localStorage.getItem('introSeen') !== '1')
+  const [mode, setMode] = useState<'2d' | '3d' | 'batch' | 'results'>(() => {
     const params = new URLSearchParams(window.location.search)
     const urlMode = params.get('mode')
     if (urlMode === '3d') return '3d'
+    if (urlMode === 'batch') return 'batch'
     if (urlMode === 'results') return 'results'
     const stored = localStorage.getItem('simMode')
     // Default to 2d to avoid loading 3D on first visit
     if (stored === '3d') return '3d'
+    if (stored === 'batch') return 'batch'
     if (stored === 'results') return 'results'
     return '2d'
   })
@@ -47,6 +52,15 @@ function App() {
   useEffect(() => {
     localStorage.setItem('simMode', mode)
   }, [mode])
+
+  const handleIntroDone = () => {
+    localStorage.setItem('introSeen', '1')
+    setShowIntro(false)
+  }
+
+  if (showIntro) {
+    return <GlobalIntro onStart={handleIntroDone} />
+  }
 
   return (
     <>
@@ -59,6 +73,23 @@ function App() {
         display: 'flex',
         gap: '0.5rem'
       }}>
+        <button
+          onClick={() => setShowIntro(true)}
+          style={{
+            padding: '10px 20px',
+            background: 'rgba(255,255,255,0.1)',
+            color: 'white',
+            border: '2px solid rgba(255,255,255,0.2)',
+            borderRadius: '12px',
+            cursor: 'pointer',
+            fontWeight: 400,
+            fontSize: '0.95rem',
+            backdropFilter: 'blur(10px)',
+            transition: 'all 0.2s'
+          }}
+        >
+          Intro
+        </button>
         <button
           onClick={() => setMode('2d')}
           style={{
@@ -77,7 +108,7 @@ function App() {
             transition: 'all 0.2s'
           }}
         >
-          🎮 2D View
+          2D View
         </button>
         <button
           onClick={() => setMode('3d')}
@@ -97,7 +128,27 @@ function App() {
             transition: 'all 0.2s'
           }}
         >
-          🏗️ 3D View
+          3D View
+        </button>
+        <button
+          onClick={() => setMode('batch')}
+          style={{
+            padding: '10px 20px',
+            background: mode === 'batch'
+              ? 'linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%)'
+              : 'rgba(255,255,255,0.1)',
+            color: 'white',
+            border: mode === 'batch' ? '2px solid #38bdf8' : '2px solid rgba(255,255,255,0.2)',
+            borderRadius: '12px',
+            cursor: 'pointer',
+            fontWeight: mode === 'batch' ? 700 : 400,
+            fontSize: '0.95rem',
+            backdropFilter: 'blur(10px)',
+            boxShadow: mode === 'batch' ? '0 4px 15px rgba(14,165,233,0.35)' : 'none',
+            transition: 'all 0.2s'
+          }}
+        >
+          Batch Analysis
         </button>
         <button
           onClick={() => setMode('results')}
@@ -117,7 +168,7 @@ function App() {
             transition: 'all 0.2s'
           }}
         >
-          📊 Results
+          Results
         </button>
       </div>
 
@@ -127,10 +178,15 @@ function App() {
           <App3D />
         </Suspense>
       )}
+      {mode === 'batch' && (
+        <div style={{ minHeight: '100vh', background: '#0e0e0e', paddingTop: '4rem' }}>
+          <BatchAnalysis />
+        </div>
+      )}
       {mode === 'results' && (
         <div style={{ 
           minHeight: '100vh', 
-          background: 'linear-gradient(135deg, #f8fafc, #e2e8f0)',
+          background: 'linear-gradient(135deg, #0f172a, #111827)',
           paddingTop: '4rem'
         }}>
           <ResultsInsights />

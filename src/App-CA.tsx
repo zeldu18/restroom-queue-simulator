@@ -117,40 +117,6 @@ export default function AppCA() {
     return ARTICLE_LAYOUTS.find(l => l.id === selectedLayout) || ARTICLE_LAYOUTS[0];
   };
 
-  if (activeTab === 'batch') {
-    return (
-      <div style={{ height: '100vh', overflow: 'auto', background: '#0e0e0e' }}>
-        <div style={{ padding: '1rem', borderBottom: '1px solid #2a2a2a', display: 'flex', gap: '1rem' }}>
-          <button
-            onClick={() => setActiveTab('live')}
-            style={{
-              padding: '8px 16px',
-              background: '#1f1f1f',
-              color: '#eee',
-              border: '1px solid #2a2a2a',
-              borderRadius: '8px',
-              cursor: 'pointer'
-            }}
-          >
-            🎮 Live Simulation
-          </button>
-          <button
-            style={{
-              padding: '8px 16px',
-              background: '#4CAF50',
-              color: '#eee',
-              border: '1px solid #2a2a2a',
-              borderRadius: '8px',
-              cursor: 'pointer'
-            }}
-          >
-            📊 Batch Analysis
-          </button>
-        </div>
-        <BatchAnalysis />
-      </div>
-    );
-  }
 
   // Count people by state
   const inQueue = simulation.people.filter(p => p.state === PersonState.IN_QUEUE).length;
@@ -194,41 +160,6 @@ export default function AppCA() {
         pointerEvents: 'none'
       }} />
 
-      {/* Tab Navigation */}
-      <div style={{ position: 'absolute', top: '1rem', left: '1rem', display: 'flex', gap: '1rem', zIndex: 1000 }}>
-        <button
-          onClick={() => setActiveTab('live')}
-          style={{
-            padding: '10px 20px',
-            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-            color: 'white',
-            border: 'none',
-            borderRadius: '12px',
-            cursor: 'pointer',
-            fontWeight: 700,
-            fontSize: '0.95rem',
-            boxShadow: '0 4px 15px rgba(16,185,129,0.4)',
-          }}
-        >
-          🎮 Live Simulation
-        </button>
-        <button
-          onClick={() => setActiveTab('batch')}
-          style={{
-            padding: '10px 20px',
-            background: 'rgba(255,255,255,0.1)',
-            color: 'white',
-            border: '2px solid rgba(255,255,255,0.2)',
-            borderRadius: '12px',
-            cursor: 'pointer',
-            fontWeight: 600,
-            fontSize: '0.95rem',
-            backdropFilter: 'blur(10px)'
-          }}
-        >
-          📊 Batch Analysis
-        </button>
-      </div>
 
       <div style={{ maxWidth: '1500px', margin: '0 auto', position: 'relative', zIndex: 1 }}>
         {/* Title Banner */}
@@ -249,16 +180,8 @@ export default function AppCA() {
             textShadow: '0 4px 20px rgba(0,0,0,0.4)',
             letterSpacing: '1px',
           }}>
-            🚻 RESTROOM QUEUE SIMULATOR
+            PUBLIC RESTROOM QUEUE SIMULATION
           </h1>
-          <p style={{
-            color: 'rgba(255,255,255,0.9)',
-            margin: '0.5rem 0 0 0',
-            fontSize: '1rem',
-            fontWeight: 600,
-          }}>
-            Cellular Automata • Gender Equity Analysis • CS166 Queueing Theory
-          </p>
         </div>
 
         <div style={{

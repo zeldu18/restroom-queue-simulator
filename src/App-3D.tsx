@@ -150,10 +150,125 @@ export default function App3D() {
   const layoutDepth = bounds.maxRow - bounds.minRow;
   const cameraDistance = Math.max(layoutWidth, layoutDepth) * 1.5;
 
+  // Generate layout description for header
+  const getLayoutDescription = () => {
+    const parts: string[] = [];
+    if (counts.womenStalls > 0) parts.push(`${counts.womenStalls} Women's Stalls`);
+    if (counts.menStalls > 0) parts.push(`${counts.menStalls} Men's Stalls`);
+    if (counts.urinals > 0) parts.push(`${counts.urinals} Urinals`);
+    if (counts.sharedStalls > 0) parts.push(`${counts.sharedStalls} Gender-Neutral Stalls`);
+    if (counts.sinks > 0) parts.push(`${counts.sinks} Sinks`);
+    return parts.join(' • ');
+  };
+
   return (
     <div style={{ width: '100vw', height: '100vh', background: '#1a1a2e', display: 'flex' }}>
       {/* 3D Canvas */}
       <div style={{ flex: 1, position: 'relative' }}>
+        {/* Layout Header */}
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 100,
+          background: 'linear-gradient(180deg, rgba(26,26,46,0.95) 0%, rgba(26,26,46,0.8) 70%, transparent 100%)',
+          padding: '1rem 1.5rem 2rem',
+          pointerEvents: 'none'
+        }}>
+          <h1 style={{ 
+            margin: 0, 
+            fontSize: '1.4rem', 
+            fontWeight: 700,
+            color: '#fff',
+            textShadow: '0 2px 10px rgba(0,0,0,0.5)'
+          }}>
+            {currentLayout?.name || 'Custom Layout'}
+          </h1>
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '0.75rem',
+            marginTop: '0.5rem',
+            flexWrap: 'wrap'
+          }}>
+            {counts.womenStalls > 0 && (
+              <span style={{ 
+                background: 'rgba(244,114,182,0.2)', 
+                color: '#f472b6', 
+                padding: '0.25rem 0.75rem', 
+                borderRadius: '20px',
+                fontSize: '0.85rem',
+                fontWeight: 500,
+                border: '1px solid rgba(244,114,182,0.3)'
+              }}>
+                🚺 {counts.womenStalls} Stalls
+              </span>
+            )}
+            {counts.menStalls > 0 && (
+              <span style={{ 
+                background: 'rgba(96,165,250,0.2)', 
+                color: '#60a5fa', 
+                padding: '0.25rem 0.75rem', 
+                borderRadius: '20px',
+                fontSize: '0.85rem',
+                fontWeight: 500,
+                border: '1px solid rgba(96,165,250,0.3)'
+              }}>
+                🚹 {counts.menStalls} Stalls
+              </span>
+            )}
+            {counts.urinals > 0 && (
+              <span style={{ 
+                background: 'rgba(96,165,250,0.2)', 
+                color: '#60a5fa', 
+                padding: '0.25rem 0.75rem', 
+                borderRadius: '20px',
+                fontSize: '0.85rem',
+                fontWeight: 500,
+                border: '1px solid rgba(96,165,250,0.3)'
+              }}>
+                🚽 {counts.urinals} Urinals
+              </span>
+            )}
+            {counts.sharedStalls > 0 && (
+              <span style={{ 
+                background: 'rgba(16,185,129,0.2)', 
+                color: '#10b981', 
+                padding: '0.25rem 0.75rem', 
+                borderRadius: '20px',
+                fontSize: '0.85rem',
+                fontWeight: 500,
+                border: '1px solid rgba(16,185,129,0.3)'
+              }}>
+                ⚥ {counts.sharedStalls} Neutral
+              </span>
+            )}
+            {counts.sinks > 0 && (
+              <span style={{ 
+                background: 'rgba(139,92,246,0.2)', 
+                color: '#a78bfa', 
+                padding: '0.25rem 0.75rem', 
+                borderRadius: '20px',
+                fontSize: '0.85rem',
+                fontWeight: 500,
+                border: '1px solid rgba(139,92,246,0.3)'
+              }}>
+                🚰 {counts.sinks} Sinks
+              </span>
+            )}
+          </div>
+          {currentLayout?.areaRatio && (
+            <div style={{ 
+              marginTop: '0.5rem', 
+              fontSize: '0.8rem', 
+              color: '#9ca3af'
+            }}>
+              Area ratio: {currentLayout.areaRatio}
+            </div>
+          )}
+        </div>
+        
         <Canvas shadows camera={{ position: [centerX + cameraDistance, cameraDistance * 0.8, centerZ + cameraDistance], fov: 45 }}>
           {/* Lighting */}
           <ambientLight intensity={0.5} />
