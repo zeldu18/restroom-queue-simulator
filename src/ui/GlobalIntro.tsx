@@ -156,7 +156,7 @@ export function GlobalIntro({ onStart }: GlobalIntroProps) {
   }, [phase]);
 
   useEffect(() => {
-    if (activeScreen === 1) {
+    if (activeScreen === 2) {
       const t = setTimeout(() => setFairlyVisible(true), 300);
       return () => clearTimeout(t);
     }
@@ -164,7 +164,7 @@ export function GlobalIntro({ onStart }: GlobalIntroProps) {
   }, [activeScreen]);
 
   useEffect(() => {
-    if (activeScreen === 2) {
+    if (activeScreen === 3) {
       const t = setTimeout(() => setBarsVisible(true), 400);
       return () => clearTimeout(t);
     }
@@ -283,17 +283,44 @@ export function GlobalIntro({ onStart }: GlobalIntroProps) {
     );
   }
 
-  // Scrolly intro (3 screens) with dot grid on left, cards on right
+  // Scrolly intro: full-screen splash → dot grid + cards
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #0f172a, #111827)' }}>
+      {/* Screen 0 — full-screen centered text, no dots */}
+      <div
+        ref={setScreenRef(0)}
+        style={{
+          height: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          textAlign: 'center',
+          padding: '2rem',
+        }}
+      >
+        <h1 style={{
+          fontSize: 'clamp(2rem, 5vw, 3.2rem)',
+          lineHeight: 1.2,
+          color: '#f1f5f9',
+          margin: 0,
+          maxWidth: 700,
+          fontWeight: 700,
+        }}>
+          Imagine 50 men and 50 women waiting to use a public restroom.
+        </h1>
+        <div className="scroll-cue" style={{ marginTop: 48, opacity: activeScreen === 0 ? 1 : 0, transition: 'opacity 0.5s' }}>
+          <div style={{ fontSize: 13, color: '#64748b', marginBottom: 8 }}>Scroll to begin</div>
+          <div className="scroll-cue-arrow">&darr;</div>
+        </div>
+      </div>
+
+      {/* Screens 1–3: dot grid + scrolling cards */}
       <div className="scrolly-root" style={{ paddingTop: '2rem' }}>
-        {/* Sticky dot grid — matches Results opening */}
+        {/* Sticky dot grid */}
         <div className="scrolly-sticky-wrap">
           <div className="scrolly-sticky">
-            <div style={{ textAlign: 'center', padding: '0.5rem 0 0.25rem', color: '#94a3b8', fontSize: '1.05rem', lineHeight: 1.5 }}>
-              Imagine 50 men and 50 women waiting to use a public restroom.
-            </div>
-            <div style={{ height: 'calc(100vh - 10rem)' }}>
+            <div style={{ height: 'calc(100vh - 8rem)' }}>
               <CrowdViz
                 people={people}
                 positions={INTRO_POSITIONS}
@@ -307,27 +334,26 @@ export function GlobalIntro({ onStart }: GlobalIntroProps) {
 
         {/* Scrolling cards */}
         <div className="scrolly-text">
-          {/* Screen 0 */}
-          <div ref={setScreenRef(0)} className="scrolly-step" data-step="0">
+          {/* Screen 1 — question */}
+          <div ref={setScreenRef(1)} className="scrolly-step" data-step="1">
             <div
               className="scrolly-step-card"
-              style={{ opacity: activeScreen === 0 ? 1 : 0.25, transition: 'opacity 0.4s', maxWidth: 380 }}
+              style={{ opacity: activeScreen === 1 ? 1 : 0.25, transition: 'opacity 0.4s', maxWidth: 380 }}
             >
               <h2 style={{ fontSize: '1.7rem', lineHeight: 1.25, margin: '0 0 0.75rem', color: '#f1f5f9' }}>
                 How can we serve the most people?
               </h2>
-              <div className="scroll-cue" style={{ marginTop: 24, textAlign: 'center', opacity: activeScreen === 0 ? 1 : 0, transition: 'opacity 0.5s' }}>
-                <div style={{ fontSize: 12, color: '#64748b', marginBottom: 6 }}>Scroll to begin</div>
+              <div className="scroll-cue" style={{ marginTop: 24, textAlign: 'center', opacity: activeScreen === 1 ? 1 : 0, transition: 'opacity 0.5s' }}>
                 <div className="scroll-cue-arrow">&darr;</div>
               </div>
             </div>
           </div>
 
-          {/* Screen 1 — FAIRLY */}
-          <div ref={setScreenRef(1)} className="scrolly-step" data-step="1">
+          {/* Screen 2 — FAIRLY */}
+          <div ref={setScreenRef(2)} className="scrolly-step" data-step="2">
             <div
               className="scrolly-step-card"
-              style={{ opacity: activeScreen === 1 ? 1 : 0.25, transition: 'opacity 0.4s', maxWidth: 380 }}
+              style={{ opacity: activeScreen === 2 ? 1 : 0.25, transition: 'opacity 0.4s', maxWidth: 380 }}
             >
               <h2 style={{ fontSize: '1.7rem', lineHeight: 1.25, margin: '0 0 0.75rem', color: '#f1f5f9' }}>
                 How can we serve the most people{' '}
@@ -342,17 +368,17 @@ export function GlobalIntro({ onStart }: GlobalIntroProps) {
               <p style={{ fontSize: '0.95rem', lineHeight: 1.6, color: '#94a3b8', margin: 0 }}>
                 What design clears the line fairly?
               </p>
-              <div className="scroll-cue" style={{ marginTop: 20, textAlign: 'center', opacity: activeScreen <= 1 ? 1 : 0, transition: 'opacity 0.5s' }}>
+              <div className="scroll-cue" style={{ marginTop: 20, textAlign: 'center', opacity: activeScreen <= 2 ? 1 : 0, transition: 'opacity 0.5s' }}>
                 <div className="scroll-cue-arrow">&darr;</div>
               </div>
             </div>
           </div>
 
-          {/* Screen 2 — Time chips + bars */}
-          <div ref={setScreenRef(2)} className="scrolly-step" data-step="2">
+          {/* Screen 3 — Time chips + bars */}
+          <div ref={setScreenRef(3)} className="scrolly-step" data-step="3">
             <div
               className="scrolly-step-card"
-              style={{ opacity: activeScreen === 2 ? 1 : 0.25, transition: 'opacity 0.4s', maxWidth: 380 }}
+              style={{ opacity: activeScreen === 3 ? 1 : 0.25, transition: 'opacity 0.4s', maxWidth: 380 }}
             >
               <h2 style={{ fontSize: '1.5rem', lineHeight: 1.25, margin: '0 0 1rem', color: '#f1f5f9' }}>
                 What if one group takes longer per visit?
