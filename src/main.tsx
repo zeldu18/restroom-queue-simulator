@@ -36,7 +36,7 @@ function LoadingScreen() {
 }
 
 function App() {
-  const [showIntro, setShowIntro] = useState(() => localStorage.getItem('introSeen') !== '1')
+  const [showIntro, setShowIntro] = useState(true)
   const [mode, setMode] = useState<'2d' | '3d' | /* 'batch' | */ 'results' | 'info'>(() => {
     const params = new URLSearchParams(window.location.search)
     const urlMode = params.get('mode')
