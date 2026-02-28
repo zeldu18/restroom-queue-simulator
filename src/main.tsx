@@ -4,9 +4,11 @@ import './styles.css'
 
 // Always load 2D app immediately
 import AppCA from './App-CA'
-import { ResultsInsights } from './ui/ResultsInsights'
-import BatchAnalysis from './ui/BatchAnalysis'
+// import { ResultsInsights } from './ui/ResultsInsights'
+// import BatchAnalysis from './ui/BatchAnalysis'
+import ResultsStoryScrolly from './ui/ResultsStoryScrolly'
 import { GlobalIntro } from './ui/GlobalIntro'
+import { SimulationInfo } from './ui/SimulationInfo'
 
 // Lazy load 3D app only when needed (heavy Three.js dependencies)
 const App3D = lazy(() => import('./App-3D'))
@@ -35,17 +37,18 @@ function LoadingScreen() {
 
 function App() {
   const [showIntro, setShowIntro] = useState(() => localStorage.getItem('introSeen') !== '1')
-  const [mode, setMode] = useState<'2d' | '3d' | 'batch' | 'results'>(() => {
+  const [mode, setMode] = useState<'2d' | '3d' | /* 'batch' | */ 'results' | 'info'>(() => {
     const params = new URLSearchParams(window.location.search)
     const urlMode = params.get('mode')
     if (urlMode === '3d') return '3d'
-    if (urlMode === 'batch') return 'batch'
+    // if (urlMode === 'batch') return 'batch'
     if (urlMode === 'results') return 'results'
+    if (urlMode === 'info') return 'info'
     const stored = localStorage.getItem('simMode')
-    // Default to 2d to avoid loading 3D on first visit
     if (stored === '3d') return '3d'
-    if (stored === 'batch') return 'batch'
+    // if (stored === 'batch') return 'batch'
     if (stored === 'results') return 'results'
+    if (stored === 'info') return 'info'
     return '2d'
   })
 
@@ -130,6 +133,7 @@ function App() {
         >
           3D View
         </button>
+        {/* Batch Analysis button hidden — code preserved
         <button
           onClick={() => setMode('batch')}
           style={{
@@ -150,6 +154,7 @@ function App() {
         >
           Batch Analysis
         </button>
+        */}
         <button
           onClick={() => setMode('results')}
           style={{
@@ -170,6 +175,23 @@ function App() {
         >
           Results
         </button>
+        <button
+          onClick={() => setMode('info')}
+          style={{
+            padding: '10px 20px',
+            background: mode === 'info' ? 'rgba(148,163,184,0.3)' : 'rgba(255,255,255,0.1)',
+            color: 'white',
+            border: mode === 'info' ? '2px solid #94a3b8' : '2px solid rgba(255,255,255,0.2)',
+            borderRadius: '12px',
+            cursor: 'pointer',
+            fontWeight: mode === 'info' ? 700 : 400,
+            fontSize: '0.95rem',
+            backdropFilter: 'blur(10px)',
+            transition: 'all 0.2s'
+          }}
+        >
+          Simulation Info
+        </button>
       </div>
 
       {mode === '2d' && <AppCA />}
@@ -178,18 +200,25 @@ function App() {
           <App3D />
         </Suspense>
       )}
+      {/* Batch Analysis hidden — code preserved
       {mode === 'batch' && (
         <div style={{ minHeight: '100vh', background: '#0e0e0e', paddingTop: '4rem' }}>
           <BatchAnalysis />
         </div>
       )}
+      */}
       {mode === 'results' && (
         <div style={{ 
           minHeight: '100vh', 
           background: 'linear-gradient(135deg, #0f172a, #111827)',
           paddingTop: '4rem'
         }}>
-          <ResultsInsights />
+          <ResultsStoryScrolly />
+        </div>
+      )}
+      {mode === 'info' && (
+        <div style={{ paddingTop: '4rem' }}>
+          <SimulationInfo />
         </div>
       )}
     </>

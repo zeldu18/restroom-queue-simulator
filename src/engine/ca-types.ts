@@ -268,6 +268,9 @@ export interface CAConfig {
   
   // Warmup period
   warmupSeconds: number;
+
+  // Random seed for deterministic results (same seed = same outcomes)
+  seed: number;
 }
 
 export const DEFAULT_CA_CONFIG: CAConfig = {
@@ -285,6 +288,7 @@ export const DEFAULT_CA_CONFIG: CAConfig = {
   characterFrequencies: DEFAULT_CHARACTER_FREQUENCIES,
   areaConfig: DEFAULT_AREA_CONFIG,
   warmupSeconds: 120,
+  seed: 12345,
 };
 
 export interface SimStats {

@@ -178,3 +178,135 @@ h4 {
 .results-flip-card:hover .results-flip-inner {
   filter: brightness(1.03);
 }
+
+/* ── Scrollytelling layout ── */
+.scrolly-root {
+  display: flex;
+  position: relative;
+  min-height: 100vh;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+.scrolly-sticky-wrap {
+  flex: 1.6;
+  min-width: 0;
+}
+
+.scrolly-sticky {
+  position: sticky;
+  top: 5rem;
+  height: calc(100vh - 6rem);
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.scrolly-text {
+  flex: 0.65;
+  padding-left: 1.5rem;
+}
+
+.scrolly-step {
+  min-height: 85vh;
+  display: flex;
+  align-items: center;
+}
+
+.scrolly-step-card {
+  padding: 2rem 1.5rem;
+  border-radius: 16px;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(6px);
+  max-width: 340px;
+}
+
+.scrolly-step-num {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: #6366f1;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.scrolly-step-headline {
+  font-size: 1.35rem;
+  line-height: 1.3;
+  margin: 0 0 0.75rem;
+  color: #f1f5f9;
+}
+
+.scrolly-step-text {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: #94a3b8;
+  margin: 0;
+}
+
+/* FAIRLY underline animation */
+.fairly-word {
+  position: relative;
+  display: inline;
+  color: #a78bfa;
+  font-weight: 800;
+}
+
+.fairly-word::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -2px;
+  height: 3px;
+  width: 0%;
+  background: linear-gradient(90deg, #a78bfa, #6366f1);
+  border-radius: 2px;
+  transition: width 0.8s cubic-bezier(.4,0,.2,1);
+}
+
+.fairly-word--active::after {
+  width: 100%;
+}
+
+/* Scroll cue */
+.scroll-cue-arrow {
+  font-size: 22px;
+  color: #6366f1;
+  animation: scrollBounce 1.6s ease-in-out infinite;
+}
+
+@keyframes scrollBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(10px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scroll-cue-arrow {
+    animation: none;
+  }
+}
+
+@media (max-width: 800px) {
+  .scrolly-root {
+    flex-direction: column;
+  }
+  .scrolly-sticky-wrap {
+    flex: none;
+    height: 50vh;
+  }
+  .scrolly-sticky {
+    position: sticky;
+    top: 4rem;
+    height: 48vh;
+  }
+  .scrolly-text {
+    padding-left: 0;
+  }
+  .scrolly-step {
+    min-height: 60vh;
+  }
+  .scrolly-step-card {
+    max-width: none;
+  }
+}

@@ -369,74 +369,56 @@ export class CAGrid {
 
   /**
    * Layout 1: Basic (50-50) - GALLEY STYLE
-   * Women's stalls on left wall, men's urinals on right wall
-   * Compact with 2-tile aisle down center
+   * Equal floor area for both sides (divider in the middle)
+   * Women: 10 stalls, 3 sinks, 1 changing table
+   * Men: 2 stalls, 10 urinals, 2 sinks
    */
   buildLayout1_Basic5050(): void {
     this.reset();
-    
-    const aisleWidth = 2;  // 2-tile aisle (realistic)
-    const startCol = 2;
-    const womenSectionWidth = 7;   // Women's side width
-    const menSectionWidth = 7;     // Men's side width
-    
-    // WOMEN'S SECTION (LEFT WALL)
-    // 10 stalls in 2 rows against left wall
-    let col = startCol;
+
+    const cols = this.cols;
+    const dividerCol = Math.floor(cols / 2);  // Center divider at col 16
+
+    // Left section: cols 1 to dividerCol-1 (equal floor area)
+    const leftStart = 1;
+    const leftEnd = dividerCol - 1;
+    const leftWidth = leftEnd - leftStart + 1;
+
+    // Right section: cols dividerCol+1 to cols-2 (equal floor area)
+    const rightStart = dividerCol + 1;
+    const rightEnd = cols - 2;
+    const rightWidth = rightEnd - rightStart + 1;
+
+    // WOMEN'S SECTION (LEFT) - 10 stalls in 2 rows of 5
+    const wStart = leftStart + 1;
     for (let i = 0; i < 5; i++) {
-      this.addStall(col + i, 2, 'F', 'stall', 3, col + i);  // Row 1
-      this.addStall(col + i, 5, 'F', 'stall', 6, col + i);  // Row 2
+      this.addStall(wStart + i, 2, 'F', 'stall', 3, wStart + i);
+      this.addStall(wStart + i, 5, 'F', 'stall', 6, wStart + i);
     }
-    
-    // Sinks along back wall (women's side)
-    this.addSink(startCol + 1, 8, 9, startCol + 1, 'F');
-    this.addSink(startCol + 3, 8, 9, startCol + 3, 'F');
-    this.addSink(startCol + 5, 8, 9, startCol + 5, 'F');
-    
-    // Changing table in corner
-    this.addChangingTable(startCol, 8, 9, startCol);
-    
-    // Women's queue - straight aisle (extended)
-    for (let r = 9; r <= 15; r++) {
-      this.addQueueCell(startCol + 2, r, 'F');
-    }
-    
-    // Women's entrance
-    this.setEntrance(startCol + 2, 16, 'F');
-    
-    // DIVIDER WALL
-    const dividerCol = startCol + womenSectionWidth + aisleWidth;
+    this.addSink(wStart + 1, 8, 9, wStart + 1, 'F');
+    this.addSink(wStart + 3, 8, 9, wStart + 3, 'F');
+    this.addSink(wStart + 5, 8, 9, wStart + 5, 'F');
+    this.addChangingTable(wStart, 8, 9, wStart);
+    for (let r = 9; r <= 15; r++) this.addQueueCell(wStart + 2, r, 'F');
+    this.setEntrance(wStart + 2, 16, 'F');
+
+    // DIVIDER WALL (centered)
     this.drawVerticalWall(dividerCol, 1, 12);
-    
-    // MEN'S SECTION (RIGHT WALL)
-    const menStart = dividerCol + 1;
-    
-    // 2 stalls against back wall
-    this.addStall(menStart, 2, 'M', 'stall', 3, menStart);
-    this.addStall(menStart + 1, 2, 'M', 'stall', 3, menStart + 1);
-    
-    // 10 urinals in 2 rows (compact)
+
+    // MEN'S SECTION (RIGHT) - 2 stalls + 10 urinals
+    const mStart = rightStart + 1;
+    this.addStall(mStart, 2, 'M', 'stall', 3, mStart);
+    this.addStall(mStart + 1, 2, 'M', 'stall', 3, mStart + 1);
     for (let i = 0; i < 5; i++) {
-      this.addStall(menStart + i, 5, 'M', 'urinal', 6, menStart + i);
-      this.addStall(menStart + i, 7, 'M', 'urinal', 8, menStart + i);
+      this.addStall(mStart + i, 5, 'M', 'urinal', 6, mStart + i);
+      this.addStall(mStart + i, 7, 'M', 'urinal', 8, mStart + i);
     }
-    
-    // Men's sinks
-    this.addSink(menStart + 1, 10, 11, menStart + 1, 'M');
-    this.addSink(menStart + 3, 10, 11, menStart + 3, 'M');
-    
-    // Men's queue - compact (extended)
-    for (let r = 11; r <= 15; r++) {
-      this.addQueueCell(menStart + 2, r, 'M');
-    }
-    
-    // Men's entrance
-    this.setEntrance(menStart + 2, 16, 'M');
-    
-    // Shared exit at divider
+    this.addSink(mStart + 1, 10, 11, mStart + 1, 'M');
+    this.addSink(mStart + 3, 10, 11, mStart + 3, 'M');
+    for (let r = 11; r <= 15; r++) this.addQueueCell(mStart + 2, r, 'M');
+    this.setEntrance(mStart + 2, 16, 'M');
     this.setExit(dividerCol, 16);
-    
-    // Calculate tight bounding box
+
     this.calculateBoundingBox(1);
   }
 

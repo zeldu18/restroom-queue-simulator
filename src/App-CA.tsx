@@ -5,11 +5,8 @@ import { CASimulation } from './engine/ca-simulation';
 import { 
   type CAConfig, 
   PersonState, 
-  CharacterType,
   ARTICLE_LAYOUTS,
   DEFAULT_CA_CONFIG,
-  DEFAULT_SERVICE_TIMES,
-  DEFAULT_CHARACTER_FREQUENCIES,
 } from './engine/ca-types';
 import CACanvas from './ui/CACanvas';
 import BatchAnalysis from './ui/BatchAnalysis';
@@ -18,7 +15,7 @@ const DEFAULT_CONFIG: CAConfig = {
   ...DEFAULT_CA_CONFIG,
   gridCols: 32,
   gridRows: 18,
-  cellSize: 26,
+  cellSize: 20,
   tickMs: 150,
   secondsPerTick: 0.5,
   arrivalRatePerMin: 12,
@@ -117,6 +114,7 @@ export default function AppCA() {
     return ARTICLE_LAYOUTS.find(l => l.id === selectedLayout) || ARTICLE_LAYOUTS[0];
   };
 
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   // Count people by state
   const inQueue = simulation.people.filter(p => p.state === PersonState.IN_QUEUE).length;
@@ -162,26 +160,49 @@ export default function AppCA() {
 
 
       <div style={{ maxWidth: '1500px', margin: '0 auto', position: 'relative', zIndex: 1 }}>
-        {/* Title Banner */}
+        {/* Title + Start CTA */}
         <div style={{
           background: 'linear-gradient(135deg, #4c51bf 0%, #6366f1 100%)',
           borderRadius: '20px',
-          padding: '1.5rem 2rem',
-          marginBottom: '1.5rem',
+          padding: '1.25rem 2rem',
+          marginBottom: '1rem',
           boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
           border: '3px solid rgba(255,255,255,0.2)',
-          textAlign: 'center',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '1rem',
         }}>
           <h1 style={{
             color: 'white',
             margin: 0,
-            fontSize: '2rem',
-            fontWeight: 900,
-            textShadow: '0 4px 20px rgba(0,0,0,0.4)',
-            letterSpacing: '1px',
+            fontSize: '1.5rem',
+            fontWeight: 800,
+            textShadow: '0 2px 10px rgba(0,0,0,0.3)',
           }}>
             PUBLIC RESTROOM QUEUE SIMULATION
           </h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <span style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.9rem' }}>Start here →</span>
+            <button
+              onClick={handleStart}
+              disabled={simulation.running}
+              style={{
+                padding: '0.6rem 1.5rem',
+                background: simulation.running ? 'rgba(255,255,255,0.3)' : '#10b981',
+                color: 'white',
+                border: 'none',
+                borderRadius: '10px',
+                cursor: simulation.running ? 'default' : 'pointer',
+                fontWeight: 700,
+                fontSize: '1rem',
+                boxShadow: simulation.running ? 'none' : '0 4px 15px rgba(0,0,0,0.3)',
+              }}
+            >
+              {simulation.running ? '▶ Running' : '▶ Start'}
+            </button>
+          </div>
         </div>
 
         <div style={{
@@ -192,178 +213,63 @@ export default function AppCA() {
         }}>
           {/* Left Panel - Stats & Layout Info */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {/* Current Layout Info */}
-            <div style={{
-              background: '#ffffff',
-              borderRadius: '16px',
-              padding: '1.25rem',
-              boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
-            }}>
-              <h3 style={{ marginTop: 0, marginBottom: '0.75rem', color: '#1a365d', fontSize: '1.1rem', fontWeight: 700 }}>
-                📐 {currentLayout.name}
-              </h3>
-              <p style={{ fontSize: '0.85rem', color: '#4a5568', marginBottom: '0.75rem' }}>
-                {currentLayout.description}
-              </p>
-              
-              {/* Fixture breakdown */}
-          <div style={{
-                background: '#f7fafc', 
-                padding: '0.75rem', 
-                borderRadius: '8px',
-                fontSize: '0.8rem',
-                color: '#2d3748'
-              }}>
-                <div style={{ fontWeight: 700, marginBottom: '0.5rem', color: '#1a365d' }}>Fixtures:</div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.25rem' }}>
-                  <span>🚺 Women's Stalls:</span><span style={{ fontWeight: 600 }}>{counts.womenStalls}</span>
-                  <span>🚹 Men's Stalls:</span><span style={{ fontWeight: 600 }}>{counts.menStalls}</span>
-                  <span>⚥ Shared Stalls:</span><span style={{ fontWeight: 600 }}>{counts.sharedStalls}</span>
-                  <span>🚽 Urinals:</span><span style={{ fontWeight: 600 }}>{counts.urinals}</span>
-                  <span>🚰 Sinks:</span><span style={{ fontWeight: 600 }}>{counts.sinks}</span>
-                  <span>👶 Changing Tables:</span><span style={{ fontWeight: 600 }}>{counts.changingTables}</span>
-                </div>
-                
-                <div style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid #e2e8f0' }}>
-                  <div style={{ fontWeight: 700, marginBottom: '0.25rem' }}>Area Ratio: {currentLayout.areaRatio}</div>
-                  {areaPercentages.women > 0 && <span>♀ {areaPercentages.women.toFixed(0)}% </span>}
-                  {areaPercentages.men > 0 && <span>♂ {areaPercentages.men.toFixed(0)}% </span>}
-                  {areaPercentages.shared > 0 && <span>⚥ {areaPercentages.shared.toFixed(0)}%</span>}
-                </div>
-              </div>
-            </div>
-
-            {/* Live Statistics */}
-            <div style={{
-              background: '#ffffff',
-              borderRadius: '16px',
-              padding: '1.25rem',
-              boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
-            }}>
-              <h3 style={{ marginTop: 0, marginBottom: '0.75rem', color: '#1a365d', fontSize: '1.1rem', fontWeight: 700 }}>
-                📊 Live Statistics
-              </h3>
-              
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.85rem', color: '#1f2937' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ fontWeight: 600 }}>⏱️ Time:</span>
-                  <span style={{ fontWeight: 700, color: '#1a365d' }}>{simulation.stats.simTimeSeconds.toFixed(0)}s</span>
-                </div>
-                
-                {simulation.stats.simTimeSeconds < config.warmupSeconds && (
-                  <div style={{
-                    padding: '0.5rem',
-                    background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
-                    borderRadius: '6px',
-                    border: '2px solid #fbbf24',
-                    fontSize: '0.75rem',
-                    color: '#92400e',
-                    fontWeight: 600,
-                    textAlign: 'center'
-                  }}>
-                    ⏳ Warmup: {(config.warmupSeconds - simulation.stats.simTimeSeconds).toFixed(0)}s remaining
-                  </div>
-                )}
-                
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ fontWeight: 600 }}>✅ Served:</span>
-                  <span style={{ fontWeight: 700, color: '#059669' }}>{simulation.stats.servedCount}</span>
-                </div>
-                
-                <hr style={{ margin: '0.25rem 0', border: 'none', borderTop: '1px solid #e5e7eb' }} />
-                
-                <div style={{ 
-                  background: 'linear-gradient(135deg, #dbeafe 0%, #e0e7ff 100%)', 
-                  padding: '0.5rem', 
-                  borderRadius: '6px',
-                  border: '2px solid #93c5fd'
-                }}>
-                  <div style={{ fontWeight: 700, marginBottom: '0.25rem', color: '#1e40af', fontSize: '0.85rem' }}>
-                    👥 Inside: {inQueue + usingFixtures + walking}
-                  </div>
-                  <div style={{ fontSize: '0.75rem', paddingLeft: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span>Queue:</span>
-                      <span style={{ fontWeight: 600 }}>{inQueue}</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span>Using Fixtures:</span>
-                      <span style={{ fontWeight: 600 }}>{usingFixtures}</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span>Walking:</span>
-                      <span style={{ fontWeight: 600 }}>{walking}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <hr style={{ margin: '0.25rem 0', border: 'none', borderTop: '1px solid #e5e7eb' }} />
-                
-                {/* Wait times */}
-                <div style={{ fontWeight: 700, color: '#1a365d', fontSize: '0.85rem' }}>⏱️ Average Times</div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Overall Total:</span>
-                  <span style={{ fontWeight: 700 }}>{simulation.getAverageTime().toFixed(1)}s</span>
-                </div>
-                
-                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#db2777' }}>
-                  <span style={{ fontWeight: 600 }}>♀ Women:</span>
-                  <span style={{ fontWeight: 700 }}>{simulation.getFemaleAverageTime().toFixed(1)}s</span>
-                </div>
-                
-                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#2563eb' }}>
-                  <span style={{ fontWeight: 600 }}>♂ Men:</span>
-                  <span style={{ fontWeight: 700 }}>{simulation.getMaleAverageTime().toFixed(1)}s</span>
-                </div>
-
-                {simulation.stats.femaleCount > 0 && simulation.stats.maleCount > 0 && (
-                  <div style={{
-                    marginTop: '0.5rem',
-                    padding: '0.75rem',
-                    background: simulation.getFemaleAverageTime() > simulation.getMaleAverageTime() 
-                      ? 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)'
-                      : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
-                    borderRadius: '8px',
-                    border: simulation.getFemaleAverageTime() > simulation.getMaleAverageTime()
-                      ? '2px solid #fca5a5'
-                      : '2px solid #86efac',
-                  }}>
-                    <div style={{ fontWeight: 700, marginBottom: '0.25rem', color: '#374151', fontSize: '0.85rem' }}>
-                      ⚖️ Gender Gap Analysis
-                    </div>
-                    <div style={{ fontSize: '0.75rem', color: '#4b5563' }}>
-                      <div>Difference: <strong>{Math.abs(simulation.getFemaleAverageTime() - simulation.getMaleAverageTime()).toFixed(1)}s</strong></div>
-                      <div>
-                        Women wait: <strong>{((simulation.getFemaleAverageTime() / simulation.getMaleAverageTime() - 1) * 100).toFixed(1)}%</strong> 
-                        {simulation.getFemaleAverageTime() > simulation.getMaleAverageTime() ? ' longer' : ' less'}
-                      </div>
-                      <div style={{ marginTop: '0.25rem', fontWeight: 600, color: simulation.getFemaleAverageTime() > simulation.getMaleAverageTime() ? '#dc2626' : '#16a34a' }}>
-                        {simulation.getFemaleAverageTime() > simulation.getMaleAverageTime() 
-                          ? '⚠️ Women wait longer'
-                          : '✅ Equitable wait times'}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Character Types Legend */}
+            {/* Current Layout - compact */}
             <div style={{
               background: '#ffffff',
               borderRadius: '16px',
               padding: '1rem',
               boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
-              fontSize: '0.8rem'
             }}>
-              <h4 style={{ marginTop: 0, marginBottom: '0.5rem', color: '#1a365d' }}>👥 Character Types</h4>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', color: '#4a5568' }}>
-                <span>👩/👨 Regular (~{(DEFAULT_CHARACTER_FREQUENCIES.regular * 100).toFixed(0)}%)</span>
-                <span>🤰 Pregnant (~{(DEFAULT_CHARACTER_FREQUENCIES.pregnant * 100).toFixed(0)}% of women)</span>
-                <span>👩‍👧/👨‍👦 Parent with child (~{(DEFAULT_CHARACTER_FREQUENCIES.parentWithChild * 100).toFixed(0)}%)</span>
-                <span>👵/👴 Elderly (~{(DEFAULT_CHARACTER_FREQUENCIES.elderly * 100).toFixed(0)}%)</span>
-                <span>🧑‍🦽 Wheelchair (~{(DEFAULT_CHARACTER_FREQUENCIES.wheelchair * 100).toFixed(0)}%)</span>
+              <h3 style={{ marginTop: 0, marginBottom: '0.5rem', color: '#1a365d', fontSize: '1rem', fontWeight: 700 }}>
+                {currentLayout.name}
+              </h3>
+              <p style={{ fontSize: '0.8rem', color: '#4a5568', margin: 0 }}>
+                {currentLayout.areaRatio} • {counts.womenStalls}♀ stalls, {counts.menStalls}♂ stalls, {counts.urinals} urinals
+              </p>
+            </div>
+
+            {/* Live Statistics - simplified */}
+            <div style={{
+              background: '#ffffff',
+              borderRadius: '16px',
+              padding: '1rem',
+              boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
+            }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.9rem', color: '#1f2937' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Time</span>
+                  <span style={{ fontWeight: 700, color: '#1a365d' }}>{simulation.stats.simTimeSeconds.toFixed(0)}s</span>
+                </div>
+                {simulation.stats.simTimeSeconds < config.warmupSeconds && (
+                  <div style={{ padding: '0.4rem', background: '#fef3c7', borderRadius: '6px', fontSize: '0.8rem', color: '#92400e', textAlign: 'center' }}>
+                    Warmup: {(config.warmupSeconds - simulation.stats.simTimeSeconds).toFixed(0)}s left
+                  </div>
+                )}
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Served</span>
+                  <span style={{ fontWeight: 700, color: '#059669' }}>{simulation.stats.servedCount}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#db2777' }}>
+                  <span>♀ Women wait</span>
+                  <span style={{ fontWeight: 700 }}>{simulation.getFemaleAverageTime().toFixed(1)}s</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#2563eb' }}>
+                  <span>♂ Men wait</span>
+                  <span style={{ fontWeight: 700 }}>{simulation.getMaleAverageTime().toFixed(1)}s</span>
+                </div>
               </div>
+              {showAdvanced && (
+                <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid #e5e7eb', fontSize: '0.8rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Queue</span><span>{inQueue}</span></div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Using fixtures</span><span>{usingFixtures}</span></div>
+                </div>
+              )}
+              <button
+                onClick={() => setShowAdvanced(!showAdvanced)}
+                style={{ marginTop: '0.5rem', background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', fontSize: '0.75rem', textDecoration: 'underline' }}
+              >
+                {showAdvanced ? 'Show less' : 'Show more'}
+              </button>
             </div>
           </div>
 
@@ -380,46 +286,8 @@ export default function AppCA() {
               customMode={false}
             />
             
-            {/* Legend */}
-            <div style={{ marginTop: '1rem', fontSize: '0.8rem', color: '#1f2937' }}>
-              <strong style={{ color: '#111827' }}>Legend:</strong>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem', marginTop: '0.5rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                  <div style={{ width: 14, height: 14, borderRadius: '50%', background: '#e91e63', border: '1px solid #333' }} />
-                  <span>Women</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                  <div style={{ width: 14, height: 14, borderRadius: '50%', background: '#3f51b5', border: '1px solid #333' }} />
-                  <span>Men</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                  <div style={{ width: 14, height: 14, background: '#f8bbd9', border: '1px solid #999' }} />
-                  <span>W Stalls</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                  <div style={{ width: 14, height: 14, background: '#90caf9', border: '1px solid #999' }} />
-                  <span>M Stalls</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                  <div style={{ width: 14, height: 14, background: '#c5e1a5', border: '1px solid #999' }} />
-                  <span>Shared</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                  <div style={{ width: 14, height: 14, background: '#42a5f5', border: '1px solid #999' }} />
-                  <span>Urinals</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                  <div style={{ width: 14, height: 14, background: '#b39ddb', border: '1px solid #999' }} />
-                  <span>Sinks</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                  <div style={{ width: 14, height: 14, background: '#fff59d', border: '1px solid #999' }} />
-                  <span>Changing</span>
-                </div>
-              </div>
-              <div style={{ marginTop: '0.5rem', padding: '0.4rem', background: '#f3f4f6', borderRadius: '4px', fontSize: '0.75rem', color: '#374151' }}>
-                <strong>Status:</strong> 🟢 VAC = Vacant, 🔴 OCC = Occupied
-              </div>
+            <div style={{ marginTop: '0.75rem', fontSize: '0.75rem', color: '#6b7280' }}>
+              Pink = women, Blue = men. Watch the queues and wait times.
             </div>
           </div>
 
@@ -596,28 +464,6 @@ export default function AppCA() {
               </div>
             </div>
 
-            {/* Service Time Info */}
-            <div style={{
-              background: '#ffffff',
-              borderRadius: '16px',
-              padding: '1rem',
-              boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
-              fontSize: '0.75rem',
-              color: '#4a5568'
-            }}>
-              <h4 style={{ marginTop: 0, marginBottom: '0.5rem', color: '#1a365d' }}>⏱️ Service Times</h4>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.25rem' }}>
-                <span>♀ Stall:</span><span>{DEFAULT_SERVICE_TIMES.female.stallMin}-{DEFAULT_SERVICE_TIMES.female.stallMax}s</span>
-                <span>♂ Stall:</span><span>{DEFAULT_SERVICE_TIMES.male.stallMin}-{DEFAULT_SERVICE_TIMES.male.stallMax}s</span>
-                <span>🚽 Urinal:</span><span>{DEFAULT_SERVICE_TIMES.male.urinalMin}-{DEFAULT_SERVICE_TIMES.male.urinalMax}s</span>
-                <span>♀ Sink:</span><span>{DEFAULT_SERVICE_TIMES.female.sinkMin}-{DEFAULT_SERVICE_TIMES.female.sinkMax}s</span>
-                <span>♂ Sink:</span><span>{DEFAULT_SERVICE_TIMES.male.sinkMin}-{DEFAULT_SERVICE_TIMES.male.sinkMax}s</span>
-                <span>👶 Changing:</span><span>{DEFAULT_SERVICE_TIMES.changingTable.min}-{DEFAULT_SERVICE_TIMES.changingTable.max}s</span>
-                </div>
-              <div style={{ marginTop: '0.5rem', fontStyle: 'italic', opacity: 0.8 }}>
-                Character types apply multipliers to base times.
-              </div>
-            </div>
           </div>
         </div>
       </div>

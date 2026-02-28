@@ -1,5 +1,6 @@
 // CA Simulation Engine - Updated with Character Types and Gender-Specific Times
 
+import { mulberry32 } from './rng';
 import { Person, shuffleArray } from './ca-person';
 import { CAGrid } from './ca-grid';
 import { 
@@ -29,8 +30,11 @@ export class CASimulation {
   running: boolean;
   nextPersonId: number;
 
+  private rand: () => number;
+
   constructor(config: Partial<CAConfig> = {}) {
     this.config = { ...DEFAULT_CA_CONFIG, ...config };
+    this.rand = mulberry32((this.config.seed ?? 12345) >>> 0);
     this.grid = new CAGrid(this.config.gridCols, this.config.gridRows);
     this.people = [];
     this.stats = this.createEmptyStats();
@@ -134,18 +138,18 @@ export class CASimulation {
     const L = Math.exp(-mean);
     let k = 0;
     let p = 1;
-    
+
     do {
       k++;
-      p *= Math.random();
+      p *= this.rand();
     } while (p > L);
-    
+
     return k - 1;
   }
 
   private spawnPerson(): void {
-    const rand = Math.random();
-    const gender: Gender = rand < this.config.genderMix.female ? 'F' : 'M';
+    const r = this.rand();
+    const gender: Gender = r < this.config.genderMix.female ? 'F' : 'M';
     
     // Determine character type based on frequencies
     const characterType = this.selectCharacterType(gender);
@@ -181,7 +185,7 @@ export class CASimulation {
     const { dwellTime, sinkTime, changingTableTime } = this.generateServiceTimes(gender, characterType);
 
     // Men only use sink 50% of the time, women always use sink
-    const willUseSink = gender === 'F' ? true : Math.random() < this.config.pMaleUseSink;
+    const willUseSink = gender === 'F' ? true : this.rand() < this.config.pMaleUseSink;
 
     const p = new Person(
       this.nextPersonId++,
@@ -228,7 +232,7 @@ export class CASimulation {
     // Parents with children may need changing table
     if (characterType === CharacterType.PARENT_WITH_CHILD) {
       // 50% chance they need the changing table
-      if (Math.random() < 0.5) {
+      if (this.rand() < 0.5) {
         changingTableTime = this.randFloat(times.changingTable.min, times.changingTable.max);
       }
     }
@@ -406,7 +410,7 @@ export class CASimulation {
     if (availableStalls.length === 0) return null;
 
     // For men, prefer urinals with given probability
-    if (p.gender === 'M' && Math.random() < this.config.pMaleUrinal) {
+    if (p.gender === 'M' && this.rand() < this.config.pMaleUrinal) {
       const urinals = availableStalls.filter(s => s.type === 'urinal');
       if (urinals.length > 0) {
         return this.pickRandomStall(urinals);
@@ -425,7 +429,7 @@ export class CASimulation {
   }
 
   private pickRandomStall(stalls: Stall[]): Stall {
-    const idx = Math.floor(Math.random() * stalls.length);
+    const idx = Math.floor(this.rand() * stalls.length);
     return stalls[idx]!;
   }
 
@@ -701,7 +705,7 @@ export class CASimulation {
     // For slower characters, they may not move every tick
     if (p.walkSpeedMultiplier < 1.0) {
       const moveChance = p.walkSpeedMultiplier;
-      if (Math.random() > moveChance) {
+      if (this.rand() > moveChance) {
         return; // Skip movement this tick
       }
     }
@@ -885,7 +889,7 @@ export class CASimulation {
   }
 
   private randFloat(min: number, max: number): number {
-    return Math.random() * (max - min) + min;
+    return this.rand() * (max - min) + min;
   }
 
   getAverageTime(): number {
