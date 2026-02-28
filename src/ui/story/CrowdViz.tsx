@@ -8,16 +8,20 @@ interface Props {
   longWaitIds: number[];
   dimmed?: boolean;
   introMode?: boolean;
+  expandWomen?: boolean;
   queueLabel?: string;
   reducedMotion?: boolean;
 }
 
 const R = 9;
 const R_FINISHED = 7;
+const R_WOMEN_EXPANDED = 13;
+const R_MEN_SHRUNK = 6;
+const EXPAND_SHIFT = 18;
 
 const GROUP_COLOR: Record<string, string> = { women: '#f472b6', men: '#60a5fa' };
 
-const CrowdViz: React.FC<Props> = ({ people, positions, longWaitIds, dimmed, introMode, queueLabel, reducedMotion }) => {
+const CrowdViz: React.FC<Props> = ({ people, positions, longWaitIds, dimmed, introMode, expandWomen, queueLabel, reducedMotion }) => {
   const longSet = useMemo(() => new Set(longWaitIds), [longWaitIds]);
   const dur = reducedMotion ? '0s' : '0.7s';
 
@@ -69,13 +73,22 @@ const CrowdViz: React.FC<Props> = ({ people, positions, longWaitIds, dimmed, int
         if (!pos) return null;
         const isLong = longSet.has(p.id);
         const isFinished = pos.zone === 'finished';
-        const r = isFinished ? R_FINISHED : R;
+        const isWoman = p.group === 'women';
+
+        let r: number;
+        let cy = pos.y;
+        if (expandWomen && introMode) {
+          r = isWoman ? R_WOMEN_EXPANDED : R_MEN_SHRUNK;
+          if (!isWoman) cy = pos.y + EXPAND_SHIFT;
+        } else {
+          r = isFinished ? R_FINISHED : R;
+        }
 
         return (
           <circle
             key={p.id}
             cx={pos.x}
-            cy={pos.y}
+            cy={cy}
             r={r}
             fill={GROUP_COLOR[p.group]}
             opacity={1}

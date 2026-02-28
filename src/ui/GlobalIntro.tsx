@@ -326,6 +326,7 @@ export function GlobalIntro({ onStart }: GlobalIntroProps) {
                 positions={INTRO_POSITIONS}
                 longWaitIds={[]}
                 introMode
+                expandWomen={activeScreen === 3}
                 reducedMotion={false}
               />
             </div>

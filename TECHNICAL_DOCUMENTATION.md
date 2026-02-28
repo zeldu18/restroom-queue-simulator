@@ -519,3 +519,7 @@ src/
 - Static geometry memoized
 - Dynamic updates only for occupancy indicators
 - Throttled re-renders via React state batching
+
+
+
+
