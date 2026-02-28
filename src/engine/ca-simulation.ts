@@ -336,7 +336,6 @@ export class CASimulation {
         )) {
           p.targetQueueIndex = i;
           p.stuckTicks = 0;
-          console.log(`Person ${p.id} retrying queue position ${i}`);
           break;
         }
       }
@@ -409,9 +408,9 @@ export class CASimulation {
     });
   }
 
-  private findAvailableStall(p: Person): Stall | null {
-    // Find TRULY free stalls that this person can use
+  private findAvailableStall(p: Person, excludeStall?: Stall | null): Stall | null {
     const availableStalls = this.grid.stalls.filter(s => 
+      s !== excludeStall &&
       s.occupiedUntil <= this.stats.simTimeSeconds && 
       s.occupantId === null &&
       (s.genderAllowed === p.gender || s.genderAllowed === 'both')
@@ -419,23 +418,63 @@ export class CASimulation {
 
     if (availableStalls.length === 0) return null;
 
-    // For men, prefer urinals with given probability
+    // Prefer stalls that have a reachable path (avoids pathfinding deadlocks)
+    const reachable = availableStalls.filter(s =>
+      this.canReach(p, s.entranceCol, s.entranceRow)
+    );
+    const pool = reachable.length > 0 ? reachable : availableStalls;
+
     if (p.gender === 'M' && this.rand() < this.config.pMaleUrinal) {
-      const urinals = availableStalls.filter(s => s.type === 'urinal');
-      if (urinals.length > 0) {
-        return this.pickRandomStall(urinals);
+      const urinals = pool.filter(s => s.type === 'urinal');
+      if (urinals.length > 0) return this.pickRandomStall(urinals);
+    }
+
+    const nonUrinals = pool.filter(s => s.type !== 'urinal');
+    if (nonUrinals.length > 0) return this.pickRandomStall(nonUrinals);
+    return this.pickRandomStall(pool);
+  }
+
+  private canReach(p: Person, targetCol: number, targetRow: number): boolean {
+    const isWalkable = this.getIsWalkable(p);
+    const next = findNextStep(
+      p.col, p.row, targetCol, targetRow,
+      isWalkable, this.grid.cols, this.grid.rows
+    );
+    return next !== null;
+  }
+
+  private getIsWalkable(p: Person): (col: number, row: number) => boolean {
+    return (col: number, row: number): boolean => {
+      if (col < 0 || col >= this.grid.cols || row < 0 || row >= this.grid.rows) return false;
+      const cellType = this.grid.getCell(row, col);
+      if (cellType === CellType.WALL) return false;
+      if (cellType === CellType.W_STALL || cellType === CellType.M_STALL ||
+          cellType === CellType.URINAL || cellType === CellType.SINK ||
+          cellType === CellType.SHARED_STALL || cellType === CellType.CHANGING_TABLE) {
+        return (p.col === col && p.row === row);
       }
-    }
-
-    // If not using urinal (or no urinals available), prefer non-urinal stalls
-    // This fixes the issue where men who don't want urinals still get assigned to them
-    const nonUrinals = availableStalls.filter(s => s.type !== 'urinal');
-    if (nonUrinals.length > 0) {
-      return this.pickRandomStall(nonUrinals);
-    }
-
-    // Fallback to any available fixture (urinal) if no stalls available
-    return this.pickRandomStall(availableStalls);
+      const occupant = this.people.find(
+        other => other !== p && other.col === col && other.row === row && other.state !== PersonState.DONE
+      );
+      if (occupant) {
+        const movingStates: PersonState[] = [
+          PersonState.WALKING_TO_QUEUE, PersonState.WALKING_TO_STALL,
+          PersonState.WALKING_TO_SINK, PersonState.WALKING_TO_CHANGING_TABLE, PersonState.EXITING
+        ];
+        if (movingStates.includes(occupant.state) && p.stuckTicks > 5) return true;
+        return false;
+      }
+      const isOccupiedStallEntrance = this.grid.stalls.some(
+        s => s.entranceCol === col && s.entranceRow === row && s.occupantId !== null && s.occupantId !== p.id
+      );
+      const isOccupiedSinkEntrance = this.grid.sinks.some(
+        s => s.entranceCol === col && s.entranceRow === row && s.occupantId !== null && s.occupantId !== p.id
+      );
+      const isOccupiedTableEntrance = this.grid.changingTables.some(
+        t => t.entranceCol === col && t.entranceRow === row && t.occupantId !== null && t.occupantId !== p.id
+      );
+      return !isOccupiedStallEntrance && !isOccupiedSinkEntrance && !isOccupiedTableEntrance;
+    };
   }
 
   private pickRandomStall(stalls: Stall[]): Stall {
@@ -464,12 +503,24 @@ export class CASimulation {
       return;
     }
 
-    // If pathing to the reserved stall keeps failing, release the reservation
-    // and rejoin the queue to avoid hard-locking the entrance flow.
+    // If pathing to the reserved stall keeps failing, try a different stall
+    // instead of going back to queue (avoids cycling through unreachable fixtures).
     if (p.stuckTicks > 12) {
-      if (p.targetStall.occupantId === p.id) {
-        p.targetStall.occupantId = null;
-        p.targetStall.occupiedUntil = 0;
+      const oldStall = p.targetStall;
+      if (oldStall && oldStall.occupantId === p.id) {
+        oldStall.occupantId = null;
+        oldStall.occupiedUntil = 0;
+      }
+      const altStall = this.findAvailableStall(p, oldStall);
+      if (altStall) {
+        p.targetStall = altStall;
+        altStall.occupantId = p.id;
+        if (altStall.type === 'urinal' && p.gender === 'M') {
+          const times = this.config.serviceTimes;
+          p.dwellTime = this.randFloat(times.male.urinalMin, times.male.urinalMax);
+        }
+        p.stuckTicks = 0;
+        return;
       }
       p.targetStall = null;
       p.targetQueueIndex = null;
@@ -702,73 +753,9 @@ export class CASimulation {
   }
 
   private stepToward(p: Person, target: Cell): void {
-    // Apply walk speed multiplier for slower characters
-    // For slower characters, they may not move every tick
-    if (p.walkSpeedMultiplier < 1.0) {
-      const moveChance = p.walkSpeedMultiplier;
-      if (this.rand() > moveChance) {
-        return; // Skip movement this tick
-      }
-    }
-    
-    const isWalkable = (col: number, row: number): boolean => {
-      if (col < 0 || col >= this.grid.cols || row < 0 || row >= this.grid.rows) {
-        return false;
-      }
+    if (p.walkSpeedMultiplier < 1.0 && this.rand() > p.walkSpeedMultiplier) return;
 
-      const cellType = this.grid.getCell(row, col);
-
-      if (cellType === CellType.WALL) return false;
-
-      // Fixtures are NOT walkable
-      if (cellType === CellType.W_STALL || cellType === CellType.M_STALL || 
-          cellType === CellType.URINAL || cellType === CellType.SINK ||
-          cellType === CellType.SHARED_STALL || cellType === CellType.CHANGING_TABLE) {
-        return (p.col === col && p.row === row);
-      }
-
-      // Check for other people - but be smarter about it
-      const occupant = this.people.find(
-        other => other !== p && 
-        other.col === col && 
-        other.row === row && 
-        other.state !== PersonState.DONE
-      );
-      
-      if (occupant) {
-        // Allow passing through people who are also moving (walking states)
-        // This prevents gridlock where everyone blocks everyone
-        const movingStates: PersonState[] = [
-          PersonState.WALKING_TO_QUEUE,
-          PersonState.WALKING_TO_STALL,
-          PersonState.WALKING_TO_SINK,
-          PersonState.WALKING_TO_CHANGING_TABLE,
-          PersonState.EXITING
-        ];
-        const isMoving = movingStates.includes(occupant.state);
-        
-        // If the occupant is moving and we've been stuck, allow passing
-        if (isMoving && p.stuckTicks > 5) {
-          // Allow passing - they'll sort it out
-        } else {
-          return false;
-        }
-      }
-
-      // Don't allow walking to entrance cells of occupied fixtures
-      const isOccupiedStallEntrance = this.grid.stalls.some(
-        s => s.entranceCol === col && s.entranceRow === row && s.occupantId !== null && s.occupantId !== p.id
-      );
-      const isOccupiedSinkEntrance = this.grid.sinks.some(
-        s => s.entranceCol === col && s.entranceRow === row && s.occupantId !== null && s.occupantId !== p.id
-      );
-      const isOccupiedTableEntrance = this.grid.changingTables.some(
-        t => t.entranceCol === col && t.entranceRow === row && t.occupantId !== null && t.occupantId !== p.id
-      );
-      
-      return !isOccupiedStallEntrance && !isOccupiedSinkEntrance && !isOccupiedTableEntrance;
-    };
-
+    const isWalkable = this.getIsWalkable(p);
     const nextCell = findNextStep(
       p.col,
       p.row,
