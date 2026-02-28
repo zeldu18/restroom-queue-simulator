@@ -269,6 +269,29 @@ h4 {
   width: 100%;
 }
 
+.better-glow {
+  color: #a78bfa;
+  font-weight: 700;
+  text-shadow: 0 0 12px rgba(167, 139, 250, 0.6), 0 0 24px rgba(167, 139, 250, 0.3);
+  animation: betterGlow 2s ease-in-out infinite;
+}
+
+@keyframes betterGlow {
+  0%, 100% { text-shadow: 0 0 12px rgba(167, 139, 250, 0.6), 0 0 24px rgba(167, 139, 250, 0.3); }
+  50% { text-shadow: 0 0 16px rgba(167, 139, 250, 0.8), 0 0 32px rgba(167, 139, 250, 0.5); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .better-glow { animation: none; }
+}
+
+.results-closing-line2 {
+  white-space: nowrap;
+}
+@media (max-width: 640px) {
+  .results-closing-line2 { white-space: normal; }
+}
+
 /* Scroll cue */
 .scroll-cue-arrow {
   font-size: 22px;

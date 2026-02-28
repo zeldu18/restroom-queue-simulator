@@ -70,7 +70,7 @@ const STEPS: StepDef[] = [
   // 8 — Wrap
   {
     headline: 'Design for flexibility, not symmetry.',
-    text: 'A 50:50 floor split doesn\u2019t guarantee equal waiting. Outcomes depend on demand, service time, and fixture flexibility. The best solution isn\u2019t more space \u2014 it\u2019s smarter space.',
+    text: 'A 50:50 floor split doesn\u2019t guarantee equal waiting. Outcomes depend on demand, service time, and fixture flexibility. We recommend gender-neutral stalls while keeping urinals \u2014 and urinals can be placed behind doors or in partitions for privacy and comfort. The best solution isn\u2019t more space \u2014 it\u2019s smarter space.',
     layoutId: 'layout6',
     snapshotIdx: 4,
   },
@@ -115,22 +115,23 @@ const ResultsStoryScrolly: React.FC = () => {
   const isIntro = activeStep === 0;
 
   return (
-    <div ref={scrollContainerRef} className="scrolly-root">
-      {/* Sticky graphic panel */}
-      <div className="scrolly-sticky-wrap">
-        <div className="scrolly-sticky">
-          <StickyGraphic
-            activeStep={activeStep}
-            dataset={dataset}
-            snapshot={snapshot}
-            reducedMotion={reducedMotion}
-          />
+    <div>
+      <div ref={scrollContainerRef} className="scrolly-root">
+        {/* Sticky graphic panel */}
+        <div className="scrolly-sticky-wrap">
+          <div className="scrolly-sticky">
+            <StickyGraphic
+              activeStep={activeStep}
+              dataset={dataset}
+              snapshot={snapshot}
+              reducedMotion={reducedMotion}
+            />
+          </div>
         </div>
-      </div>
 
-      {/* Scrolling text column */}
-      <div className="scrolly-text">
-        {STEPS.map((s, i) => (
+        {/* Scrolling text column */}
+        <div className="scrolly-text">
+          {STEPS.map((s, i) => (
           <div
             key={i}
             ref={setStepRef(i)}
@@ -172,29 +173,92 @@ const ResultsStoryScrolly: React.FC = () => {
             </div>
           </div>
         ))}
+        </div>
+      </div>
 
-        {/* Replay / end */}
-        <div className="scrolly-step" style={{ minHeight: '40vh' }}>
-          <div className="scrolly-step-card" style={{ textAlign: 'center' }}>
-            <p style={{ color: '#94a3b8', fontSize: 14, marginBottom: 16 }}>
-              That&rsquo;s the story. Try the live simulation yourself.
-            </p>
-            <button
-              onClick={scrollToTop}
+      {/* Full-screen closing — like intro "Imagine 50 men and 50 women" */}
+      <div
+        style={{
+          minHeight: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          textAlign: 'center',
+          padding: '2rem',
+        }}
+      >
+        <div
+          style={{
+            maxWidth: 800,
+            width: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            textAlign: 'center',
+          }}
+        >
+          <p
+            style={{
+              color: '#e2e8f0',
+              fontSize: 'clamp(1.75rem, 4.5vw, 2.5rem)',
+              lineHeight: 1.4,
+              marginBottom: 16,
+              fontWeight: 500,
+            }}
+          >
+            Urinals do what urinals do (fast).
+          </p>
+          <p
+            style={{
+              color: '#e2e8f0',
+              fontSize: 'clamp(1.75rem, 4.5vw, 2.5rem)',
+              lineHeight: 1.4,
+              marginBottom: 28,
+              fontWeight: 500,
+            }}
+          >
+            Gender-neutral stalls do what stalls do (serve everyone).
+          </p>
+          <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+            <p
+              className="results-closing-line2"
               style={{
-                padding: '10px 28px',
-                background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-                color: '#fff',
-                border: 'none',
-                borderRadius: 10,
-                cursor: 'pointer',
-                fontWeight: 600,
-                fontSize: 14,
+                color: '#94a3b8',
+                fontSize: 'clamp(1.25rem, 3vw, 1.75rem)',
+                lineHeight: 1.5,
+                margin: 0,
+                textAlign: 'center',
               }}
             >
-              &uarr; Replay
-            </button>
+              Real bathrooms have more constraints, but the direction is clear: we can do{' '}
+              <span className="better-glow">better</span>
+            </p>
           </div>
+        </div>
+      </div>
+
+      {/* Replay / end */}
+      <div style={{ minHeight: '40vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
+        <div style={{ textAlign: 'center' }}>
+          <p style={{ color: '#64748b', fontSize: 14, marginBottom: 20 }}>
+            That&rsquo;s the story. Try the live simulation yourself.
+          </p>
+          <button
+            onClick={scrollToTop}
+            style={{
+              padding: '10px 28px',
+              background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 10,
+              cursor: 'pointer',
+              fontWeight: 600,
+              fontSize: 14,
+            }}
+          >
+            &uarr; Replay
+          </button>
         </div>
       </div>
     </div>
