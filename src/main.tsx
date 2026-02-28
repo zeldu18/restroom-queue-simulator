@@ -59,6 +59,7 @@ function App() {
   const handleIntroDone = () => {
     localStorage.setItem('introSeen', '1')
     setShowIntro(false)
+    setMode('3d')
   }
 
   if (showIntro) {

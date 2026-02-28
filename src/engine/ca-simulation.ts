@@ -241,15 +241,22 @@ export class CASimulation {
   }
 
   private updatePerson(p: Person): void {
-    // Track stuck status
-    p.updateStuckStatus();
+    // People legitimately using fixtures stay in place; don't flag them as stuck.
+    const inFixture =
+      p.state === PersonState.IN_STALL ||
+      p.state === PersonState.AT_SINK ||
+      p.state === PersonState.AT_CHANGING_TABLE;
+
+    if (inFixture) {
+      p.stuckTicks = 0;
+    } else {
+      p.updateStuckStatus();
+    }
     
-    // Handle severely stuck people (safety valve)
-    const STUCK_THRESHOLD = 30;  // ~15 seconds at 0.5s/tick
-    const SEVERE_STUCK = 60;     // ~30 seconds - force exit
+    // Safety valve for people stuck in movement/queue states
+    const SEVERE_STUCK = 60;
     
     if (p.isStuck(SEVERE_STUCK)) {
-      console.warn(`⚠️ Person ${p.id} (${p.gender}) severely stuck in ${p.state} at (${p.col}, ${p.row}) for ${p.stuckTicks} ticks - forcing exit`);
       // Release any claimed resources
       if (p.targetStall && p.targetStall.occupantId === p.id) {
         p.targetStall.occupantId = null;
@@ -366,6 +373,9 @@ export class CASimulation {
         p.dwellTime = this.randFloat(times.male.urinalMin, times.male.urinalMax);
       }
       
+      // Reserve the stall immediately so no one else targets it this tick
+      freeStall.occupantId = p.id;
+
       // Release from queue and shift everyone forward
       p.targetStall = freeStall;
       p.state = PersonState.WALKING_TO_STALL;
@@ -476,7 +486,7 @@ export class CASimulation {
     this.stepToward(p, entranceCell);
 
     if (p.col === entranceCell.col && p.row === entranceCell.row) {
-      // Claim fixture only at entrance arrival (no early reservation).
+      // Verify our reservation is still valid
       if (
         p.targetStall.occupantId !== null &&
         p.targetStall.occupantId !== p.id
@@ -486,20 +496,11 @@ export class CASimulation {
         p.state = PersonState.WALKING_TO_QUEUE;
         return;
       }
-      if (p.targetStall.occupiedUntil > this.stats.simTimeSeconds) {
-        p.targetStall = null;
-        p.targetQueueIndex = null;
-        p.state = PersonState.WALKING_TO_QUEUE;
-        return;
-      }
 
       p.targetStall.occupantId = p.id;
       p.moveTo(p.targetStall.col, p.targetStall.row);
-      
-      if (p.targetStall.occupantId === p.id) {
-        p.targetStall.occupiedUntil = Infinity;
-        p.targetStall.lastChangeTime = this.stats.simTimeSeconds;
-      }
+      p.targetStall.occupiedUntil = Infinity;
+      p.targetStall.lastChangeTime = this.stats.simTimeSeconds;
       
       p.state = PersonState.IN_STALL;
       p.timeEnteredStall = this.stats.simTimeSeconds;
@@ -787,9 +788,7 @@ export class CASimulation {
     if (this.grid.queueCellsShared.length > 0) {
       return this.grid.queueCellsShared;
     }
-    const cells = gender === 'F' ? this.grid.queueCellsWomen : this.grid.queueCellsMen;
-    console.log(`Queue cells for ${gender}: ${cells.length} cells available`);
-    return cells;
+    return gender === 'F' ? this.grid.queueCellsWomen : this.grid.queueCellsMen;
   }
 
   private getNextQueuePositionIndex(gender: Gender): number | null {
