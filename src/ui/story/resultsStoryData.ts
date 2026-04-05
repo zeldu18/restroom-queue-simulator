@@ -109,6 +109,31 @@ const layout6Frames: FrameDist[] = [
   { women: { arrive: 0, queue: 6, finished: 44 }, men: { arrive: 0, queue: 3, finished: 47 }, metrics: { womenAvgWait: 44, menAvgWait: 38, gap: 6, servedByMinute5: 91 }, longWaitCount: 0 },
 ];
 
+/** Story-only frames for layouts 2, 4, 5 (same viz structure as layout1; not live sim output). */
+const layout2Frames: FrameDist[] = [
+  layout1Frames[0],
+  { women: { arrive: 20, queue: 10, finished: 20 }, men: { arrive: 18, queue: 9, finished: 23 }, metrics: { womenAvgWait: 28, menAvgWait: 22, gap: 6 }, longWaitCount: 1 },
+  { women: { arrive: 8, queue: 14, finished: 28 }, men: { arrive: 6, queue: 7, finished: 37 }, metrics: { womenAvgWait: 42, menAvgWait: 36, gap: 6 }, longWaitCount: 2 },
+  { women: { arrive: 2, queue: 14, finished: 34 }, men: { arrive: 2, queue: 3, finished: 45 }, metrics: { womenAvgWait: 50, menAvgWait: 40, gap: 10 }, longWaitCount: 3 },
+  { women: { arrive: 0, queue: 12, finished: 38 }, men: { arrive: 0, queue: 2, finished: 48 }, metrics: { womenAvgWait: 46, menAvgWait: 42, gap: 4, servedByMinute5: 84 }, longWaitCount: 2 },
+];
+
+const layout4Frames: FrameDist[] = [
+  layout1Frames[0],
+  { women: { arrive: 20, queue: 12, finished: 18 }, men: { arrive: 18, queue: 4, finished: 28 }, metrics: { womenAvgWait: 32, menAvgWait: 14, gap: 18 }, longWaitCount: 2 },
+  { women: { arrive: 8, queue: 22, finished: 20 }, men: { arrive: 5, queue: 3, finished: 42 }, metrics: { womenAvgWait: 58, menAvgWait: 16, gap: 42 }, longWaitCount: 6 },
+  { women: { arrive: 0, queue: 22, finished: 28 }, men: { arrive: 0, queue: 2, finished: 48 }, metrics: { womenAvgWait: 88, menAvgWait: 18, gap: 70, servedByMinute5: 72 }, longWaitCount: 14 },
+  { women: { arrive: 0, queue: 22, finished: 28 }, men: { arrive: 0, queue: 2, finished: 48 }, metrics: { womenAvgWait: 88, menAvgWait: 22, gap: 66, servedByMinute5: 76 }, longWaitCount: 12 },
+];
+
+const layout5Frames: FrameDist[] = [
+  layout1Frames[0],
+  { women: { arrive: 20, queue: 8, finished: 22 }, men: { arrive: 18, queue: 8, finished: 24 }, metrics: { womenAvgWait: 24, menAvgWait: 24, gap: 0 }, longWaitCount: 0 },
+  { women: { arrive: 8, queue: 10, finished: 32 }, men: { arrive: 6, queue: 7, finished: 37 }, metrics: { womenAvgWait: 36, menAvgWait: 34, gap: 2 }, longWaitCount: 1 },
+  { women: { arrive: 0, queue: 10, finished: 40 }, men: { arrive: 0, queue: 2, finished: 48 }, metrics: { womenAvgWait: 42, menAvgWait: 40, gap: 2, servedByMinute5: 88 }, longWaitCount: 0 },
+  { women: { arrive: 0, queue: 8, finished: 42 }, men: { arrive: 0, queue: 2, finished: 48 }, metrics: { womenAvgWait: 40, menAvgWait: 38, gap: 2, servedByMinute5: 90 }, longWaitCount: 0 },
+];
+
 function buildDataset(layoutId: string, label: string, frames: FrameDist[]): LayoutDataset {
   return {
     layoutId,
@@ -120,9 +145,12 @@ function buildDataset(layoutId: string, label: string, frames: FrameDist[]): Lay
 }
 
 export const DATASETS: LayoutDataset[] = [
-  buildDataset('layout1', '50:50 split', layout1Frames),
-  buildDataset('layout3', 'More women stalls', layout3Frames),
-  buildDataset('layout6', 'Shared stalls + urinals', layout6Frames),
+  buildDataset('layout1', 'Equal Space', layout1Frames),
+  buildDataset('layout2', 'More for Women', layout2Frames),
+  buildDataset('layout3', 'Minimal Waits', layout3Frames),
+  buildDataset('layout4', 'High Throughput', layout4Frames),
+  buildDataset('layout5', 'Fully Shared', layout5Frames),
+  buildDataset('layout6', 'Mixed Access', layout6Frames),
 ];
 
 export function getDataset(id: string): LayoutDataset {

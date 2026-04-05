@@ -129,10 +129,10 @@ export function IntroPage({ onStart }: IntroPageProps) {
             marginTop: '1rem'
           }}>
             {[
-              { step: '1', title: 'Choose a Layout', desc: 'Select from 6 different bathroom configurations—from traditional 50-50 to gender-neutral designs' },
+              { step: '1', title: 'Choose a Layout', desc: 'Select from 6 different bathroom configurations—from Equal Space to Fully Shared designs' },
               { step: '2', title: 'Watch the Simulation', desc: 'See people arrive, queue, and use facilities in real-time. Pink dots are women, blue are men.' },
               { step: '3', title: 'Compare Wait Times', desc: 'Track average wait times by gender and see how different layouts affect equity' },
-              { step: '4', title: 'Run Batch Analysis', desc: 'Compare all layouts at once to find the most equitable design' },
+              { step: '4', title: 'Explore Results', desc: 'See the story behind the simulation and discover which layout produces the fairest outcomes' },
             ].map((item, i) => (
               <div key={i} style={{
                 display: 'flex',

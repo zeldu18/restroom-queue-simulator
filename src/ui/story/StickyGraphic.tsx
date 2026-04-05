@@ -5,25 +5,33 @@ import LayoutSpotlight from './LayoutSpotlight';
 import RightRail from './RightRail';
 import type { LayoutDataset, Snapshot } from './resultsStoryData';
 
+export type StickyMode =
+  | 'intro'
+  | 'default'
+  | 'queueGrow'
+  | 'queueCompound'
+  | 'stepChain'
+  | 'spotlight';
+
 interface Props {
-  activeStep: number;
   dataset: LayoutDataset;
   snapshot: Snapshot;
   reducedMotion: boolean;
+  stickyMode: StickyMode;
 }
 
-const StickyGraphic: React.FC<Props> = ({ activeStep, dataset, snapshot, reducedMotion }) => {
-  const isIntro = activeStep === 0;
-  const showStepChain = activeStep === 3;
-  const showSpotlight = activeStep === 6 || activeStep === 7;
+const StickyGraphic: React.FC<Props> = ({ dataset, snapshot, reducedMotion, stickyMode }) => {
+  const isIntro = stickyMode === 'intro';
+  const showStepChain = stickyMode === 'stepChain';
+  const showSpotlight = stickyMode === 'spotlight';
   const crowdDimmed = showStepChain;
   const highlightAssumptions = showStepChain;
   const showRightRail = !isIntro;
   const hasOverlay = showStepChain || showSpotlight;
 
   const queueLabel =
-    activeStep === 2 ? '\u2191 queue grows' :
-    activeStep === 4 ? 'compounding' : undefined;
+    stickyMode === 'queueGrow' ? '\u2191 queue grows' :
+    stickyMode === 'queueCompound' ? 'compounding' : undefined;
 
   const crowdHeight =
     showSpotlight ? 'calc(32vh - 2rem)' :

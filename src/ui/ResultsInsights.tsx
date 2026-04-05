@@ -282,7 +282,7 @@ export function ResultsInsights() {
               >
                 <h3 style={{ marginTop: 0, color: '#fff' }}>The myth: 50:50 split means fairness</h3>
                 <p style={{ color: '#cbd5e1', marginTop: 0 }}>
-                  Layout 1 has equal floor area, but the queues are not equal.
+                  Equal Space has equal floor area, but the queues are not equal.
                 </p>
                 <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap', alignItems: 'flex-start' }}>
                   <div>
@@ -297,7 +297,7 @@ export function ResultsInsights() {
                   </div>
                 </div>
                 <p style={{ color: '#fca5a5', fontWeight: 700, marginBottom: 0, marginTop: '1rem' }}>
-                  Gap in Layout 1: +{Math.abs(layout50.gap).toFixed(1)}s (women waiting longer)
+                  Gap in Equal Space: +{Math.abs(layout50.gap).toFixed(1)}s (women waiting longer)
                 </p>
               </div>
             )}
@@ -312,7 +312,7 @@ export function ResultsInsights() {
                   border: '1px solid rgba(16,185,129,0.35)',
                 }}
               >
-                <h3 style={{ marginTop: 0, color: '#fff' }}>Best practical solution: Layout 6</h3>
+                <h3 style={{ marginTop: 0, color: '#fff' }}>Best practical solution: Mixed Access</h3>
                 <p style={{ color: '#cbd5e1', marginTop: 0 }}>
                   Not perfect, but most balanced in practice: <strong>shared stalls</strong> absorb demand while
                   <strong> urinals remain accessible</strong> for fast male throughput.
@@ -366,7 +366,7 @@ export function ResultsInsights() {
                   <li>50:50 floor split alone does not guarantee equal waiting.</li>
                   <li>Queue fairness depends on both demand and fixture flexibility.</li>
                   <li>
-                    Layout 6 is a strong practical compromise: shared stalls for flexibility plus urinals for throughput.
+                    Mixed Access is a strong practical compromise: shared stalls for flexibility plus urinals for throughput.
                   </li>
                 </ul>
               </div>
@@ -383,7 +383,7 @@ export function ResultsInsights() {
                 fontSize: '0.9rem',
               }}
             >
-              Quick compare: Layout 1 gap = {Math.abs(layout50.gap).toFixed(1)}s vs Layout 6 gap ={' '}
+              Quick compare: Equal Space gap = {Math.abs(layout50.gap).toFixed(1)}s vs Mixed Access gap ={' '}
               {Math.abs(layout6.gap).toFixed(1)}s.
             </div>
 

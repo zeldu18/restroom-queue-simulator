@@ -9,7 +9,7 @@ const CARDS = [
   {
     emoji: '🟩',
     title: 'Inclusive',
-    caption: 'Gender-neutral stalls serve everyone who needs them.',
+    caption: 'Shared stalls serve everyone who needs them.',
     zone: 'shared' as const,
     accent: '#34d399',
   },
@@ -66,7 +66,7 @@ const LayoutSpotlight: React.FC<Props> = ({ visible, reducedMotion }) => {
       }}
     >
       <div style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600, marginBottom: 16, textTransform: 'uppercase', letterSpacing: 1 }}>
-        Layout 6 — why it works
+        Mixed Access — why it works
       </div>
 
       <svg viewBox="0 0 320 60" width="100%" style={{ display: 'block', marginBottom: 20 }}>

@@ -11,9 +11,12 @@ interface Props {
 }
 
 const LAYOUTS: { id: string; label: string }[] = [
-  { id: 'layout1', label: '50:50 split' },
-  { id: 'layout3', label: 'More women stalls' },
-  { id: 'layout6', label: 'Shared stalls + urinals' },
+  { id: 'layout1', label: 'Equal Space' },
+  { id: 'layout2', label: 'More for Women' },
+  { id: 'layout3', label: 'Minimal Waits' },
+  { id: 'layout4', label: 'High Throughput' },
+  { id: 'layout5', label: 'Fully Shared' },
+  { id: 'layout6', label: 'Mixed Access' },
 ];
 
 function useAnimatedNumber(target: number, duration: number, enabled: boolean): number {

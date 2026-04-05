@@ -214,7 +214,7 @@ function App() {
           background: 'linear-gradient(135deg, #0f172a, #111827)',
           paddingTop: '4rem'
         }}>
-          <ResultsStoryScrolly />
+          <ResultsStoryScrolly onNavigateToInfo={() => setMode('info')} />
         </div>
       )}
       {mode === 'info' && (

@@ -331,8 +331,8 @@ export interface LayoutPreset {
 export const ARTICLE_LAYOUTS: LayoutPreset[] = [
   {
     id: "layout1",
-    name: "Layout 1: Basic (50-50)",
-    description: "Traditional equal space allocation",
+    name: "Equal Space",
+    description: "Traditional 50:50 split — equal floor area, unequal outcomes",
     womenStalls: 10,
     menStalls: 2,
     menUrinals: 10,
@@ -346,8 +346,8 @@ export const ARTICLE_LAYOUTS: LayoutPreset[] = [
   },
   {
     id: "layout2",
-    name: "Layout 2: Equal Waiting Times",
-    description: "More women's stalls, fewer men's facilities",
+    name: "More for Women",
+    description: "Parity-oriented — more stalls allocated to women to target equal wait times",
     womenStalls: 13,
     menStalls: 2,
     menUrinals: 6,
@@ -361,8 +361,8 @@ export const ARTICLE_LAYOUTS: LayoutPreset[] = [
   },
   {
     id: "layout3",
-    name: "Layout 3: Minimal Waiting Times",
-    description: "Optimized for throughput",
+    name: "Minimal Waits",
+    description: "Throughput-optimized — designed to reduce overall system wait time",
     womenStalls: 12,
     menStalls: 2,
     menUrinals: 8,
@@ -376,8 +376,8 @@ export const ARTICLE_LAYOUTS: LayoutPreset[] = [
   },
   {
     id: "layout4",
-    name: "Layout 4: Mixed Basic",
-    description: "Shared toilets with urinals",
+    name: "High Throughput",
+    description: "Urinal-heavy — maximizes men's throughput, tests impact on the wait gap",
     womenStalls: 0,
     menStalls: 0,
     menUrinals: 0,
@@ -391,8 +391,8 @@ export const ARTICLE_LAYOUTS: LayoutPreset[] = [
   },
   {
     id: "layout5",
-    name: "Layout 5: Gender-Neutral",
-    description: "All shared toilet cabins",
+    name: "Fully Shared",
+    description: "All-gender pooled stalls — no separation, full capacity sharing",
     womenStalls: 0,
     menStalls: 0,
     menUrinals: 0,
@@ -406,8 +406,8 @@ export const ARTICLE_LAYOUTS: LayoutPreset[] = [
   },
   {
     id: "layout6",
-    name: "Layout 6: Minimal Mixed",
-    description: "Shared cabins with urinals",
+    name: "Mixed Access",
+    description: "Pooled stalls plus urinals — fast lane for quick visits, shared stalls for everyone else",
     womenStalls: 0,
     menStalls: 0,
     menUrinals: 0,

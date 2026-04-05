@@ -61,7 +61,7 @@ const NAV_STEPS = [
           {[
             { emoji: '📋', label: 'The queues', desc: 'Lines forming at the entrance. Which side gets longer?' },
             { emoji: '⏱️', label: 'Wait times', desc: "Women's wait vs Men's wait. Shown in the left panel." },
-            { emoji: '📐', label: 'Layout', desc: 'Try different layouts from the right panel. Compare 50:50 vs 68:32.' },
+            { emoji: '📐', label: 'Layout', desc: 'Try different layouts from the right panel. Compare Equal Space vs Mixed Access.' },
           ].map((item, i) => (
             <div key={i} style={{
               display: 'flex',

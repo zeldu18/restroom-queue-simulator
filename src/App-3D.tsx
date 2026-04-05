@@ -156,7 +156,7 @@ export default function App3D() {
     if (counts.womenStalls > 0) parts.push(`${counts.womenStalls} Women's Stalls`);
     if (counts.menStalls > 0) parts.push(`${counts.menStalls} Men's Stalls`);
     if (counts.urinals > 0) parts.push(`${counts.urinals} Urinals`);
-    if (counts.sharedStalls > 0) parts.push(`${counts.sharedStalls} Gender-Neutral Stalls`);
+    if (counts.sharedStalls > 0) parts.push(`${counts.sharedStalls} Shared stalls`);
     if (counts.sinks > 0) parts.push(`${counts.sinks} Sinks`);
     return parts.join(' • ');
   };
@@ -638,7 +638,7 @@ export default function App3D() {
                   return <span style={{ color: '#10b981' }}>✅ Good equity! Wait times are roughly equal.</span>;
                 }
                 if (gap > 30) {
-                  return <span style={{ color: '#f59e0b' }}>⚠️ Try Layout 2 or 3 for better women's wait times</span>;
+                  return <span style={{ color: '#f59e0b' }}>⚠️ Try More for Women or Minimal Waits for better women's wait times</span>;
                 }
                 if (gap > 10) {
                   return <span style={{ color: '#fbbf24' }}>💡 Consider adding more women's stalls</span>;
